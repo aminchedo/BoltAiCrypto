@@ -1428,7 +1428,335 @@ async def get_portfolio_positions(current_user: dict = Depends(get_current_user)
         log_error("portfolio_positions_error", str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
+# Analytics and Real-time endpoints
+@app.get("/api/analytics/predictions/{symbol}")
+async def get_predictions(symbol: str):
+    """Get ML predictions for a symbol"""
+    try:
+        from analytics.realtime_stream import stream_manager
+        
+        # Get historical data and generate prediction
+        historical_data = await stream_manager._get_historical_data(symbol)
+        if historical_data is not None:
+            prediction = await stream_manager.predictive_engine.generate_prediction(symbol, historical_data)
+            log_api_call(f"/api/analytics/predictions/{symbol}", "GET", 0.15, 200)
+            return prediction
+        else:
+            raise HTTPException(status_code=404, detail=f"No data available for {symbol}")
+            
+    except Exception as e:
+        log_error("prediction_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/analytics/generate-strategy")
+async def generate_strategy(request: dict):
+    """Auto-generate trading strategy"""
+    try:
+        from analytics.realtime_stream import stream_manager
+        
+        symbol = request.get('symbol')
+        market_conditions = request.get('market_conditions', {})
+        
+        if not symbol:
+            raise HTTPException(status_code=400, detail="Symbol is required")
+        
+        strategy = await stream_manager.predictive_engine.auto_generate_strategy(symbol, market_conditions)
+        log_api_call("/api/analytics/generate-strategy", "POST", 0.25, 200)
+        
+        return strategy
+        
+    except Exception as e:
+        log_error("strategy_generation_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/analytics/market-depth/{symbol}")
+async def get_market_depth(symbol: str):
+    """Get real-time market depth data"""
+    try:
+        from analytics.realtime_stream import stream_manager
+        
+        if symbol in stream_manager.market_data_cache:
+            market_data = stream_manager.market_data_cache[symbol]
+            depth_data = {
+                "symbol": symbol,
+                "timestamp": market_data.timestamp,
+                "bids": market_data.depth["bids"],
+                "asks": market_data.depth["asks"],
+                "spread": market_data.spread,
+                "mid_price": (market_data.bid + market_data.ask) / 2
+            }
+            log_api_call(f"/api/analytics/market-depth/{symbol}", "GET", 0.03, 200)
+            return depth_data
+        else:
+            raise HTTPException(status_code=404, detail=f"No market data for {symbol}")
+            
+    except Exception as e:
+        log_error("market_depth_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/analytics/correlations")
+async def get_correlations():
+    """Get correlation matrix for active symbols"""
+    try:
+        from analytics.realtime_stream import stream_manager
+        import numpy as np
+        
+        # Get price data for all active symbols
+        symbols = list(stream_manager.market_data_cache.keys())
+        if len(symbols) < 2:
+            return {"correlations": {}, "symbols": symbols}
+        
+        # Generate mock correlation data (in real implementation, use historical prices)
+        correlation_matrix = np.random.uniform(-0.8, 0.8, (len(symbols), len(symbols)))
+        np.fill_diagonal(correlation_matrix, 1.0)
+        
+        # Make it symmetric
+        correlation_matrix = (correlation_matrix + correlation_matrix.T) / 2
+        np.fill_diagonal(correlation_matrix, 1.0)
+        
+        correlations = {}
+        for i, symbol1 in enumerate(symbols):
+            correlations[symbol1] = {}
+            for j, symbol2 in enumerate(symbols):
+                correlations[symbol1][symbol2] = float(correlation_matrix[i, j])
+        
+        log_api_call("/api/analytics/correlations", "GET", 0.08, 200)
+        
+        return {
+            "correlations": correlations,
+            "symbols": symbols,
+            "timestamp": time.time()
+        }
+        
+    except Exception as e:
+        log_error("correlations_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/analytics/performance-metrics")
+async def get_performance_metrics():
+    """Get real-time performance metrics"""
+    try:
+        from analytics.realtime_stream import stream_manager
+        
+        metrics = {
+            "active_connections": len(stream_manager.connections),
+            "active_subscriptions": sum(len(subs) for subs in stream_manager.subscriptions.values()),
+            "cached_symbols": len(stream_manager.market_data_cache),
+            "message_rate": stream_manager.message_count,
+            "uptime": time.time() - stream_manager.last_performance_check,
+            "latency_avg": np.mean(stream_manager.latency_measurements) if stream_manager.latency_measurements else 0,
+            "timestamp": time.time()
+        }
+        
+        log_api_call("/api/analytics/performance-metrics", "GET", 0.02, 200)
+        return metrics
+        
+    except Exception as e:
+        log_error("performance_metrics_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+# WebSocket endpoint for real-time data
+@app.websocket("/ws/realtime")
+async def websocket_endpoint(websocket: WebSocket):
+    """WebSocket endpoint for real-time data streaming"""
+    await websocket.accept()
+    
+    try:
+        from analytics.realtime_stream import stream_manager
+        
+        # Add to connections
+        stream_manager.connections.add(websocket)
+        logger.info(f"WebSocket client connected via FastAPI. Total: {len(stream_manager.connections)}")
+        
+        # Send initial data
+        await stream_manager._send_initial_data(websocket)
+        
+        while True:
+            # Handle incoming messages
+            try:
+                data = await websocket.receive_text()
+                await stream_manager._handle_client_message(websocket, data)
+            except Exception as e:
+                logger.error(f"WebSocket message error: {e}")
+                break
+                
+    except Exception as e:
+        logger.error(f"WebSocket connection error: {e}")
+    finally:
+        # Clean up
+        if hasattr(stream_manager, 'connections'):
+            stream_manager.connections.discard(websocket)
+        for symbol_subs in getattr(stream_manager, 'subscriptions', {}).values():
+            symbol_subs.discard(websocket)
+        logger.info("WebSocket client disconnected")
+
+# Hugging Face AI endpoints
+@app.get("/api/ai/sentiment/{symbol}")
+async def analyze_sentiment(symbol: str):
+    """Analyze market sentiment for a symbol"""
+    try:
+        from analytics.huggingface_ai import huggingface_ai
+        
+        # Get recent news (mock data for demo)
+        news_texts = [
+            f"{symbol} shows strong performance amid market volatility",
+            f"Analysts upgrade {symbol} price target following earnings",
+            f"Market uncertainty affects {symbol} trading volume"
+        ]
+        
+        sentiment_analysis = await huggingface_ai.analyze_market_sentiment(news_texts)
+        log_api_call(f"/api/ai/sentiment/{symbol}", "GET", 0.25, 200)
+        
+        return sentiment_analysis
+        
+    except Exception as e:
+        log_error("sentiment_analysis_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/ai/market-analysis")
+async def generate_market_analysis(request: dict):
+    """Generate AI-powered market analysis"""
+    try:
+        from analytics.huggingface_ai import huggingface_ai
+        
+        symbol = request.get('symbol')
+        market_data = request.get('market_data', {})
+        
+        if not symbol:
+            raise HTTPException(status_code=400, detail="Symbol is required")
+        
+        analysis = await huggingface_ai.generate_market_analysis(market_data)
+        log_api_call("/api/ai/market-analysis", "POST", 0.35, 200)
+        
+        return {
+            "symbol": symbol,
+            "analysis": analysis,
+            "timestamp": time.time()
+        }
+        
+    except Exception as e:
+        log_error("market_analysis_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/ai/insights/{symbol}")
+async def get_trading_insights(symbol: str):
+    """Get comprehensive AI-powered trading insights"""
+    try:
+        from analytics.huggingface_ai import huggingface_ai
+        from analytics.realtime_stream import stream_manager
+        
+        # Get current market data
+        market_data = {}
+        if symbol in stream_manager.market_data_cache:
+            cached_data = stream_manager.market_data_cache[symbol]
+            market_data = {
+                'symbol': symbol,
+                'price': cached_data.price,
+                'volume': cached_data.volume,
+                'change_24h': (cached_data.price - 100) / 100 * 100,  # Mock calculation
+                'volatility': 0.03  # Mock volatility
+            }
+        else:
+            # Mock data if not available
+            market_data = {
+                'symbol': symbol,
+                'price': 100.0,
+                'volume': 1000000,
+                'change_24h': 2.5,
+                'volatility': 0.03
+            }
+        
+        insights = await huggingface_ai.generate_trading_insights(symbol, market_data)
+        log_api_call(f"/api/ai/insights/{symbol}", "GET", 0.45, 200)
+        
+        return insights
+        
+    except Exception as e:
+        log_error("trading_insights_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/ai/summarize-news")
+async def summarize_news(request: dict):
+    """Summarize financial news articles"""
+    try:
+        from analytics.huggingface_ai import huggingface_ai
+        
+        news_texts = request.get('news_texts', [])
+        if not news_texts:
+            raise HTTPException(status_code=400, detail="news_texts is required")
+        
+        summaries = await huggingface_ai.summarize_news(news_texts)
+        log_api_call("/api/ai/summarize-news", "POST", 0.30, 200)
+        
+        return {
+            "summaries": summaries,
+            "count": len(summaries),
+            "timestamp": time.time()
+        }
+        
+    except Exception as e:
+        log_error("news_summarization_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/ai/ask-question")
+async def ask_market_question(request: dict):
+    """Ask questions about market data using AI"""
+    try:
+        from analytics.huggingface_ai import huggingface_ai
+        
+        question = request.get('question')
+        context = request.get('context')
+        
+        if not question or not context:
+            raise HTTPException(status_code=400, detail="Both question and context are required")
+        
+        answer = await huggingface_ai.answer_market_question(question, context)
+        log_api_call("/api/ai/ask-question", "POST", 0.25, 200)
+        
+        return {
+            "question": question,
+            "answer": answer,
+            "timestamp": time.time()
+        }
+        
+    except Exception as e:
+        log_error("question_answering_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Startup event to initialize real-time streaming
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on startup"""
+    try:
+        from analytics.realtime_stream import stream_manager
+        from analytics.huggingface_ai import huggingface_ai
+        
+        # Initialize the stream manager
+        await stream_manager.initialize()
+        
+        # Initialize Hugging Face AI models
+        await huggingface_ai.initialize_models()
+        
+        # Start the WebSocket server in background
+        import asyncio
+        asyncio.create_task(stream_manager.start_server('localhost', 8765))
+        
+        logger.info("Real-time analytics and AI services started")
+        
+    except Exception as e:
+        logger.error(f"Failed to start analytics services: {e}")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up on shutdown"""
+    try:
+        from analytics.realtime_stream import stream_manager
+        await stream_manager.stop()
+        logger.info("Analytics services stopped")
+    except Exception as e:
+        logger.error(f"Error stopping analytics services: {e}")
+
 if __name__ == "__main__":
     import uvicorn
-    print("Starting HTS Trading System Backend...")
+    print("Starting HTS Trading System Backend with Analytics...")
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)

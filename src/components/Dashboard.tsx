@@ -5,10 +5,11 @@ import RiskPanel from './RiskPanel';
 import PortfolioPanel from './PortfolioPanel';
 import BacktestPanel from './BacktestPanel';
 import PnLDashboard from './PnLDashboard';
+import PredictiveAnalyticsDashboard from './PredictiveAnalyticsDashboard';
 import { TradingSignal, MarketData, OHLCVData } from '../types';
 import { tradingEngine } from '../services/tradingEngine';
 import { binanceApi } from '../services/binanceApi';
-import { Activity, Wifi, WifiOff, RefreshCw, BarChart3, Zap, TrendingUp, PieChart, DollarSign, TestTube, Settings, MessageSquare } from 'lucide-react';
+import { Activity, Wifi, WifiOff, RefreshCw, BarChart3, Zap, TrendingUp, PieChart, DollarSign, TestTube, Settings, MessageSquare, Brain } from 'lucide-react';
 import clsx from 'clsx';
 
 const Dashboard: React.FC = () => {
@@ -277,6 +278,7 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
               { id: 'portfolio', label: 'Portfolio', icon: PieChart },
               { id: 'pnl', label: 'P&L Analytics', icon: DollarSign },
               { id: 'backtest', label: 'Backtesting', icon: TestTube },
+              { id: 'analytics', label: 'Predictive Analytics', icon: Brain },
               { id: 'notifications', label: 'Notifications', icon: MessageSquare },
               { id: 'apis', label: 'API Status', icon: Activity }
             ].map((tab) => (
@@ -446,6 +448,12 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
           {activeTab === 'backtest' && (
             <div className="col-span-12">
               <BacktestPanel />
+            </div>
+          )}
+
+          {activeTab === 'analytics' && (
+            <div className="col-span-12">
+              <PredictiveAnalyticsDashboard />
             </div>
           )}
 
