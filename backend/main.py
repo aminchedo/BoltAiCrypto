@@ -18,6 +18,11 @@ from analytics.sentiment import SentimentAnalyzer
 from analytics.ml_predictor import ml_predictor
 from analytics.indicators import calculate_atr
 from risk.risk_manager import risk_manager
+from backtesting.backtester import backtest_engine, BacktestConfig
+from notifications.telegram_bot import telegram_notifier
+from trading.trade_logger import trade_logger
+from trading.pnl_calculator import pnl_calculator
+from risk.advanced_risk_manager import advanced_risk_manager
 
 app = FastAPI(title="HTS Trading System", version="1.0.0")
 
@@ -457,6 +462,508 @@ async def reset_system():
         
         return {
             "status": "reset_complete",
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Backtesting Endpoints
+@app.post("/api/backtest/run")
+async def run_backtest(
+    symbol: str = "BTCUSDT",
+    start_date: str = "2024-01-01", 
+    end_date: str = "2024-02-01",
+    initial_capital: float = 10000
+):
+    """Run a comprehensive backtest"""
+    try:
+        config = BacktestConfig(
+            symbol=symbol,
+            start_date=start_date,
+            end_date=end_date,
+            initial_capital=initial_capital
+        )
+        
+        results = await backtest_engine.run_backtest(config)
+        
+        return {
+            "status": "completed",
+            "backtest_id": results.backtest_id,
+            "summary": {
+                "total_return": results.total_return,
+                "total_return_pct": results.total_return_pct,
+                "sharpe_ratio": results.sharpe_ratio,
+                "max_drawdown_pct": results.max_drawdown_pct,
+                "win_rate": results.win_rate,
+                "total_trades": results.total_trades
+            },
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Backtest failed: {str(e)}")
+
+@app.get("/api/backtest/results/{backtest_id}")
+async def get_backtest_results(backtest_id: str):
+    """Get detailed backtest results"""
+    try:
+        results = backtest_engine.get_cached_results(backtest_id)
+        
+        if not results:
+            raise HTTPException(status_code=404, detail="Backtest results not found")
+        
+        return {
+            "backtest_id": results.backtest_id,
+            "config": {
+                "symbol": results.config.symbol,
+                "start_date": results.config.start_date,
+                "end_date": results.config.end_date,
+                "initial_capital": results.config.initial_capital
+            },
+            "performance_metrics": {
+                "total_return": results.total_return,
+                "total_return_pct": results.total_return_pct,
+                "sharpe_ratio": results.sharpe_ratio,
+                "sortino_ratio": results.sortino_ratio,
+                "max_drawdown": results.max_drawdown,
+                "max_drawdown_pct": results.max_drawdown_pct,
+                "win_rate": results.win_rate,
+                "profit_factor": results.profit_factor,
+                "total_trades": results.total_trades,
+                "winning_trades": results.winning_trades,
+                "losing_trades": results.losing_trades,
+                "largest_win": results.largest_win,
+                "largest_loss": results.largest_loss,
+                "avg_trade_duration": results.avg_trade_duration
+            },
+            "equity_curve": results.equity_curve[-100:],  # Last 100 points for chart
+            "trades": results.trades[-50:],  # Last 50 trades
+            "monthly_returns": results.monthly_returns
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/backtest/export/{backtest_id}")
+async def export_backtest_csv(backtest_id: str):
+    """Export backtest results as CSV"""
+    try:
+        csv_content = backtest_engine.export_results_csv(backtest_id)
+        
+        if not csv_content:
+            raise HTTPException(status_code=404, detail="Backtest results not found")
+        
+        from fastapi.responses import Response
+        
+        return Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename=backtest_{backtest_id}.csv"}
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Telegram Notification Endpoints
+@app.post("/api/notifications/test")
+async def test_telegram():
+    """Test Telegram bot connectivity"""
+    try:
+        connection_status = await telegram_notifier.test_connection()
+        
+        if connection_status["status"] == "success":
+            # Send test message
+            test_message = {
+                "symbol": "BTCUSDT",
+                "action": "BUY",
+                "confidence": 0.85,
+                "price": 45000,
+                "final_score": 0.78,
+                "rsi_macd_score": 0.8,
+                "smc_score": 0.7,
+                "pattern_score": 0.6,
+                "sentiment_score": 0.5,
+                "ml_score": 0.9,
+                "timestamp": datetime.now()
+            }
+            
+            test_sent = await telegram_notifier.send_signal_alert(test_message)
+            
+            return {
+                "status": "success",
+                "connection": connection_status,
+                "test_message_sent": test_sent,
+                "timestamp": datetime.now()
+            }
+        else:
+            return {
+                "status": "error",
+                "connection": connection_status,
+                "timestamp": datetime.now()
+            }
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Telegram test failed: {str(e)}")
+
+@app.get("/api/notifications/settings")
+async def get_notification_settings():
+    """Get current notification settings"""
+    try:
+        settings = telegram_notifier.get_settings()
+        return {
+            "status": "success",
+            "settings": settings,
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/notifications/settings")
+async def update_notification_settings(settings: dict):
+    """Update notification settings"""
+    try:
+        success = telegram_notifier.update_settings(settings)
+        
+        if success:
+            updated_settings = telegram_notifier.get_settings()
+            return {
+                "status": "success",
+                "message": "Settings updated successfully",
+                "settings": updated_settings,
+                "timestamp": datetime.now()
+            }
+        else:
+            raise HTTPException(status_code=400, detail="Failed to update settings")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# P&L Tracking Endpoints
+@app.get("/api/pnl/portfolio-summary")
+async def get_portfolio_summary():
+    """Get comprehensive portfolio summary with P&L metrics"""
+    try:
+        # Get current market prices (in production, fetch from data manager)
+        current_prices = {
+            'BTCUSDT': 45000,  # Mock data - would fetch real prices
+            'ETHUSDT': 2500,
+            'ADAUSDT': 0.5
+        }
+        
+        summary = await pnl_calculator.get_portfolio_summary(current_prices)
+        
+        return {
+            "status": "success",
+            "data": summary,
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/pnl/equity-curve")
+async def get_equity_curve(timeframe: str = "1D", days_back: int = 30):
+    """Get equity curve data for portfolio visualization"""
+    try:
+        equity_curve = await pnl_calculator.generate_equity_curve(timeframe, days_back)
+        
+        return {
+            "status": "success",
+            "data": equity_curve,
+            "timeframe": timeframe,
+            "days_back": days_back,
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/pnl/performance-by-asset")
+async def get_performance_by_asset(timeframe: str = "30D"):
+    """Get performance breakdown by trading symbol"""
+    try:
+        performance = await pnl_calculator.get_performance_by_asset(timeframe)
+        
+        return {
+            "status": "success",
+            "data": performance,
+            "timeframe": timeframe,
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/pnl/portfolio-metrics")
+async def get_portfolio_metrics():
+    """Get advanced portfolio performance metrics"""
+    try:
+        # Get current market prices
+        current_prices = {
+            'BTCUSDT': 45000,
+            'ETHUSDT': 2500,
+            'ADAUSDT': 0.5
+        }
+        
+        metrics = await pnl_calculator.calculate_portfolio_metrics(current_prices)
+        
+        return {
+            "status": "success",
+            "data": metrics,
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/pnl/trade-history")
+async def get_trade_history(limit: int = 50, symbol: Optional[str] = None):
+    """Get recent trade history"""
+    try:
+        trades = await trade_logger.get_trade_history(limit, symbol)
+        
+        return {
+            "status": "success",
+            "data": trades,
+            "limit": limit,
+            "symbol": symbol,
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/pnl/signal-history")
+async def get_signal_history(limit: int = 50, symbol: Optional[str] = None):
+    """Get recent signal history"""
+    try:
+        signals = await trade_logger.get_signal_history(limit, symbol)
+        
+        return {
+            "status": "success",
+            "data": signals,
+            "limit": limit,
+            "symbol": symbol,
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/pnl/daily-summary")
+async def get_daily_summary(date: Optional[str] = None):
+    """Get daily trading summary"""
+    try:
+        target_date = None
+        if date:
+            target_date = datetime.strptime(date, '%Y-%m-%d')
+        
+        summary = await trade_logger.get_daily_summary(target_date)
+        
+        return {
+            "status": "success",
+            "data": summary,
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/pnl/monthly-performance")
+async def get_monthly_performance():
+    """Get monthly performance breakdown"""
+    try:
+        performance = await pnl_calculator.get_monthly_performance()
+        
+        return {
+            "status": "success",
+            "data": performance,
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/pnl/log-signal")
+async def log_signal(signal: dict):
+    """Log a trading signal for tracking"""
+    try:
+        signal_id = await trade_logger.log_signal(signal)
+        
+        return {
+            "status": "success",
+            "signal_id": signal_id,
+            "message": "Signal logged successfully",
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/pnl/log-trade")
+async def log_trade(trade: dict, signal_id: Optional[str] = None):
+    """Log a trade execution for tracking"""
+    try:
+        trade_id = await trade_logger.log_trade_execution(trade, signal_id)
+        
+        return {
+            "status": "success",
+            "trade_id": trade_id,
+                      "message": "Trade logged successfully",
+          "timestamp": datetime.now()
+      }
+     except Exception as e:
+         raise HTTPException(status_code=500, detail=str(e))
+
+# Advanced Risk Management Endpoints
+@app.get("/api/risk/portfolio-var")
+async def calculate_portfolio_var(confidence: float = 0.95):
+    """Calculate portfolio Value at Risk"""
+    try:
+        # Get current portfolio positions (mock data for now)
+        positions = [
+            {'symbol': 'BTCUSDT', 'quantity': 0.1, 'entry_price': 45000},
+            {'symbol': 'ETHUSDT', 'quantity': 2.0, 'entry_price': 2500}
+        ]
+        
+        var_analysis = await advanced_risk_manager.calculate_portfolio_var(positions, confidence)
+        
+        return {
+            "status": "success",
+            "data": var_analysis,
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/risk/check-correlation")
+async def check_correlation_limits(new_position: dict):
+    """Check correlation limits for new position"""
+    try:
+        # Get existing positions (mock data)
+        existing_positions = [
+            {'symbol': 'BTCUSDT', 'quantity': 0.1, 'entry_price': 45000},
+            {'symbol': 'ETHUSDT', 'quantity': 2.0, 'entry_price': 2500}
+        ]
+        
+        correlation_check = await advanced_risk_manager.check_correlation_limits(
+            new_position, existing_positions
+        )
+        
+        return {
+            "status": "success",
+            "data": correlation_check,
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/risk/optimize-position-size")
+async def optimize_position_size(signal: dict):
+    """Optimize position sizing based on risk parameters"""
+    try:
+        # Mock portfolio data
+        portfolio = {
+            'portfolio_value': 10000,
+            'open_positions': [
+                {'symbol': 'BTCUSDT', 'quantity': 0.1, 'entry_price': 45000}
+            ]
+        }
+        
+        # Mock current prices
+        current_prices = {
+            'BTCUSDT': 45000,
+            'ETHUSDT': 2500,
+            'ADAUSDT': 0.5
+        }
+        
+        optimization = await advanced_risk_manager.optimize_position_sizing(
+            signal, portfolio, current_prices
+        )
+        
+        return {
+            "status": "success",
+            "data": optimization,
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/risk/portfolio-assessment")
+async def assess_portfolio_risk():
+    """Get comprehensive portfolio risk assessment"""
+    try:
+        # Mock portfolio data
+        portfolio = {
+            'portfolio_value': 10000,
+            'open_positions': [
+                {'symbol': 'BTCUSDT', 'quantity': 0.1, 'entry_price': 45000},
+                {'symbol': 'ETHUSDT', 'quantity': 2.0, 'entry_price': 2500}
+            ]
+        }
+        
+        # Mock current prices
+        current_prices = {
+            'BTCUSDT': 45000,
+            'ETHUSDT': 2500
+        }
+        
+        risk_assessment = await advanced_risk_manager.assess_portfolio_risk(
+            portfolio, current_prices
+        )
+        
+        return {
+            "status": "success",
+            "data": risk_assessment,
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/risk/limits")
+async def get_risk_limits():
+    """Get current risk management limits"""
+    try:
+        limits = {
+            'max_portfolio_risk': advanced_risk_manager.limits.max_portfolio_risk,
+            'max_correlation': advanced_risk_manager.limits.max_correlation,
+            'max_single_asset': advanced_risk_manager.limits.max_single_asset,
+            'max_drawdown': advanced_risk_manager.limits.max_drawdown,
+            'max_var_95': advanced_risk_manager.limits.max_var_95,
+            'max_leverage': advanced_risk_manager.limits.max_leverage,
+            'min_diversification': advanced_risk_manager.limits.min_diversification
+        }
+        
+        return {
+            "status": "success",
+            "data": limits,
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/risk/limits")
+async def update_risk_limits(limits: dict):
+    """Update risk management limits"""
+    try:
+        # Update limits
+        if 'max_portfolio_risk' in limits:
+            advanced_risk_manager.limits.max_portfolio_risk = float(limits['max_portfolio_risk'])
+        if 'max_correlation' in limits:
+            advanced_risk_manager.limits.max_correlation = float(limits['max_correlation'])
+        if 'max_single_asset' in limits:
+            advanced_risk_manager.limits.max_single_asset = float(limits['max_single_asset'])
+        if 'max_drawdown' in limits:
+            advanced_risk_manager.limits.max_drawdown = float(limits['max_drawdown'])
+        if 'max_var_95' in limits:
+            advanced_risk_manager.limits.max_var_95 = float(limits['max_var_95'])
+        
+        return {
+            "status": "success",
+            "message": "Risk limits updated successfully",
+            "data": {
+                'max_portfolio_risk': advanced_risk_manager.limits.max_portfolio_risk,
+                'max_correlation': advanced_risk_manager.limits.max_correlation,
+                'max_single_asset': advanced_risk_manager.limits.max_single_asset,
+                'max_drawdown': advanced_risk_manager.limits.max_drawdown,
+                'max_var_95': advanced_risk_manager.limits.max_var_95,
+                'max_leverage': advanced_risk_manager.limits.max_leverage,
+                'min_diversification': advanced_risk_manager.limits.min_diversification
+            },
             "timestamp": datetime.now()
         }
     except Exception as e:
