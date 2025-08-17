@@ -7,7 +7,12 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "chmod +x start-dev.sh && ./start-dev.sh",
+    "start:windows": "start-dev.bat",
+    "dev:frontend": "vite",
+    "dev:backend": "cd backend && python main.py",
+    "install:all": "npm install && cd backend && pip install -r requirements.txt"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.17",
