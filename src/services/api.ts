@@ -1,9 +1,23 @@
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 export class ApiService {
+  private getAuthHeaders(): HeadersInit {
+    const token = localStorage.getItem('auth_token');
+    return {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` })
+    };
+  }
+
   async get(endpoint: string) {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`);
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      headers: this.getAuthHeaders()
+    });
     if (!response.ok) {
+      if (response.status === 401) {
+        localStorage.removeItem('auth_token');
+        window.location.href = '/login';
+      }
       throw new Error(`API Error: ${response.status}`);
     }
     return response.json();
@@ -12,16 +26,45 @@ export class ApiService {
   async post(endpoint: string, data: any) {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
     });
     
     if (!response.ok) {
+      if (response.status === 401) {
+        localStorage.removeItem('auth_token');
+        window.location.href = '/login';
+      }
       throw new Error(`API Error: ${response.status}`);
     }
     return response.json();
+  }
+
+  async login(username: string, password: string) {
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, password }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Login failed: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    localStorage.setItem('auth_token', data.access_token);
+    return data;
+  }
+
+  async getCurrentUser() {
+    return this.get('/auth/me');
+  }
+
+  logout() {
+    localStorage.removeItem('auth_token');
+    window.location.href = '/login';
   }
 
   async getPrice(symbol: string) {
