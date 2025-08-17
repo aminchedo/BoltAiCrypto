@@ -51,7 +51,7 @@ async def startup_event():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000", "http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -903,10 +903,10 @@ async def log_trade(trade: dict, signal_id: Optional[str] = None):
         return {
             "status": "success",
             "trade_id": trade_id,
-                      "message": "Trade logged successfully",
-          "timestamp": datetime.now()
-      }
-     except Exception as e:
+            "message": "Trade logged successfully",
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
          raise HTTPException(status_code=500, detail=str(e))
 
 # Advanced Risk Management Endpoints
