@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import SignalCard from './SignalCard';
 import TradingChart from './TradingChart';
 import RiskPanel from './RiskPanel';
+import PortfolioPanel from './PortfolioPanel';
 import { TradingSignal, MarketData, OHLCVData } from '../types';
 import { tradingEngine } from '../services/tradingEngine';
 import { binanceApi } from '../services/binanceApi';
@@ -15,6 +16,8 @@ const Dashboard: React.FC = () => {
   const [isConnected, setIsConnected] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [systemHealth, setSystemHealth] = useState<any>({ status: 'healthy' });
+  const [activeTab, setActiveTab] = useState<string>('signals');
+  const [apiHealthData, setApiHealthData] = useState<any>(null);
   const [detailedAnalysis, setDetailedAnalysis] = useState<any>(null);
 
   const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'SOLUSDT', 'XRPUSDT'];
@@ -23,6 +26,7 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     loadInitialData();
     
+    loadApiHealth();
     // Set up real-time price updates
     const priceInterval = setInterval(updateMarketData, 3000); // Every 3 seconds
     const signalInterval = setInterval(refreshSignals, 30000); // Every 30 seconds
@@ -31,7 +35,11 @@ const Dashboard: React.FC = () => {
     return () => {
       clearInterval(priceInterval);
       clearInterval(signalInterval);
+    const healthInterval = setInterval(checkSystemHealth, 30000); // Check every 30s
+    const apiHealthInterval = setInterval(loadApiHealth, 60000); // Check API health every minute
+    return () => {
       clearInterval(healthInterval);
+      clearInterval(apiHealthInterval);
     };
   }, []);
 
@@ -108,6 +116,15 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const loadApiHealth = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/health/all-apis');
+      const healthData = await response.json();
+      setApiHealthData(healthData);
+    } catch (error) {
+      console.error('Failed to load API health:', error);
+    }
+  };
   const generateSignal = async (symbol: string) => {
     setIsLoading(true);
     try {
@@ -167,8 +184,15 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
   };
 
   const getConnectionStatus = () => {
-    if (isConnected && systemHealth?.status === 'healthy') {
+    const apiHealthy = apiHealthData?.overall_health > 80;
+    
+    if (isConnected && systemHealth?.status === 'healthy' && apiHealthy) {
       return { 
+        status: 'Connected', 
+        color: 'text-green-400',
+        icon: '🟢',
+        details: `${apiHealthData?.healthy_apis || 0}/${apiHealthData?.total_apis || 0} APIs`
+      };
         status: 'Connected', 
         color: 'text-emerald-400',
         icon: <Wifi className="w-4 h-4" />
@@ -176,11 +200,21 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
     } else if (isConnected) {
       return { 
         status: 'Connected (Issues)', 
+        color: 'text-yellow-400',
+        icon: '🟡',
+        details: 'Some APIs degraded'
+      };
+        status: 'Connected (Issues)', 
         color: 'text-amber-400',
         icon: <Wifi className="w-4 h-4" />
       };
     } else {
       return { 
+        status: 'Disconnected', 
+        color: 'text-red-400',
+        icon: '🔴',
+        details: 'Connection lost'
+      };
         status: 'Disconnected', 
         color: 'text-red-400',
         icon: <WifiOff className="w-4 h-4" />
@@ -198,6 +232,15 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3">
+                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/25">
+                  <span className="text-white font-bold text-lg">⚡</span>
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-white">HTS Trading System</h1>
+                  <p className="text-xs text-slate-400">KuCoin + 40 API Fallbacks</p>
+                </div>
+              </div>
+              
                 <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600">
                   <Zap className="w-5 h-5 text-white" />
                 </div>
@@ -208,10 +251,17 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
               </div>
               
               <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700/50">
-                {connectionStatus.icon}
-                <span className={`text-sm font-medium ${connectionStatus.color}`}>
-                  {connectionStatus.status}
-                </span>
+                <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700/50">
+                  <span className="text-xs">{connectionStatus.icon}</span>
+                  <div className="flex flex-col">
+                    <span className={`text-xs font-medium ${connectionStatus.color}`}>
+                      {connectionStatus.status}
+                    </span>
+                    <span className="text-xs text-slate-500">
+                      {connectionStatus.details}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
             
@@ -249,6 +299,31 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
+        {/* Navigation Tabs */}
+        <div className="mb-6">
+          <div className="flex space-x-1 bg-gray-800/30 backdrop-blur-lg rounded-xl p-1 border border-gray-700/50">
+            {[
+              { id: 'signals', label: 'Live Signals', icon: '📊' },
+              { id: 'portfolio', label: 'Portfolio', icon: '💼' },
+              { id: 'analytics', label: 'Analytics', icon: '📈' },
+              { id: 'apis', label: 'API Status', icon: '🔗' }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                  activeTab === tab.id
+                    ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                }`}
+              >
+                <span>{tab.icon}</span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="grid grid-cols-12 gap-8">
           {/* Live Signals Panel */}
           <div className="col-span-12 xl:col-span-4">
@@ -258,41 +333,51 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
                 <div className="flex items-center space-x-2 text-sm text-slate-400">
                   <Activity className="w-4 h-4" />
                   <span>{signals.length} active</span>
+          {/* Conditional Content Based on Active Tab */}
+          {activeTab === 'signals' && (
+            <>
+              {/* Live Signals Panel */}
+              <div className="col-span-12 lg:col-span-4">
+                <div className="bg-gray-800/30 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
+                  <h2 className="text-xl font-bold text-white mb-4 flex items-center">
+                    <div className="w-2 h-2 rounded-full bg-gradient-to-r from-emerald-500 to-green-400 animate-pulse mr-3"></div>
+                    Live Signals
+                  </h2>
+                  <div className="space-y-4 max-h-96 overflow-y-auto scrollbar-thin scrollbar-track-slate-800 scrollbar-thumb-slate-600">
+                    {signals.length > 0 ? (
+                      signals.map(signal => (
+                        <SignalCard
+                          key={signal.symbol}
+                          signal={signal}
+                          onAnalyze={handleAnalyze}
+                          onExecute={handleExecute}
+                        />
+                      ))
+                    ) : (
+                      <div className="text-center text-gray-400 py-12">
+                        <div className="text-4xl mb-4">📊</div>
+                        <p className="text-lg mb-2">No Active Signals</p>
+                        <p className="text-sm">Select a symbol and generate a signal to get started</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-              
-              <div className="space-y-4 max-h-[800px] overflow-y-auto scrollbar-thin scrollbar-track-slate-800 scrollbar-thumb-slate-600">
-                {signals.length > 0 ? (
-                  signals.map(signal => (
-                    <SignalCard
-                      key={signal.symbol}
-                      signal={signal}
-                      onAnalyze={handleAnalyze}
-                      onExecute={handleExecute}
-                    />
-                  ))
-                ) : (
-                  <div className="text-center text-slate-400 py-12">
-                    <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg mb-2">No Active Signals</p>
-                    <p className="text-sm">Select a symbol and generate a signal to get started</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
 
-          {/* Charts Panel */}
-          <div className="col-span-12 xl:col-span-5">
-            <TradingChart 
-              symbol={selectedSymbol}
-              data={chartData}
-              indicators={detailedAnalysis?.analysis}
-            />
-            
-            {/* Detailed Analysis */}
-            {detailedAnalysis && (
-              <div className="mt-6 bg-slate-800/30 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
+              {/* Price Charts */}
+              <div className="col-span-12 lg:col-span-5">
+                <div className="bg-gray-800/30 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
+                  <h2 className="text-xl font-bold text-white mb-4 flex items-center">
+                    <div className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 animate-pulse mr-3"></div>
+                    Price Chart - {selectedSymbol}
+                  </h2>
+                  <TradingChart 
+                    symbol={selectedSymbol}
+                    data={chartData}
+                    indicators={detailedAnalysis?.analysis}
+                  />
+                </div>
+              </div>
                 <h3 className="text-lg font-semibold text-white mb-4">Analysis Details</h3>
                 
                 <div className="grid grid-cols-2 gap-4 text-sm">
@@ -328,10 +413,61 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
             )}
           </div>
 
-          {/* Risk Management Panel */}
-          <div className="col-span-12 xl:col-span-3">
-            <RiskPanel />
-          </div>
+              {/* Risk & Settings Panel */}
+              <div className="col-span-12 lg:col-span-3">
+                <RiskPanel />
+              </div>
+            </>
+          )}
+
+          {activeTab === 'portfolio' && (
+            <div className="col-span-12">
+              <PortfolioPanel />
+            </div>
+          )}
+
+          {activeTab === 'apis' && (
+            <div className="col-span-12">
+              <div className="bg-gray-800/30 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
+                <h2 className="text-xl font-bold text-white mb-4 flex items-center">
+                  <div className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-400 animate-pulse mr-3"></div>
+                  API Health Status
+                </h2>
+                
+                {apiHealthData ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-4 gap-4 mb-6">
+                      <div className="bg-gray-700/30 rounded-lg p-4">
+                        <div className="text-sm text-gray-400 mb-1">Total APIs</div>
+                        <div className="text-2xl font-bold text-white">{apiHealthData.total_apis}</div>
+                      </div>
+                      <div className="bg-gray-700/30 rounded-lg p-4">
+                        <div className="text-sm text-gray-400 mb-1">Healthy</div>
+                        <div className="text-2xl font-bold text-emerald-400">{apiHealthData.healthy_apis}</div>
+                      </div>
+                      <div className="bg-gray-700/30 rounded-lg p-4">
+                        <div className="text-sm text-gray-400 mb-1">Unhealthy</div>
+                        <div className="text-2xl font-bold text-red-400">{apiHealthData.unhealthy_apis}</div>
+                      </div>
+                      <div className="bg-gray-700/30 rounded-lg p-4">
+                        <div className="text-sm text-gray-400 mb-1">Overall Health</div>
+                        <div className="text-2xl font-bold text-cyan-400">{apiHealthData.overall_health.toFixed(1)}%</div>
+                      </div>
+                    </div>
+                    
+                    <div className="w-full bg-gray-700/50 rounded-full h-3">
+                      <div 
+                        className="bg-gradient-to-r from-emerald-500 to-green-400 h-3 rounded-full transition-all duration-500"
+                        style={{ width: `${apiHealthData.overall_health}%` }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-400 py-8">Loading API health data...</div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Market Overview Table */}
@@ -344,9 +480,13 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
                   <BarChart3 className="w-4 h-4" />
                   <span>Real-time data</span>
                 </div>
-              </div>
-            </div>
-            
+        {activeTab === 'signals' && (
+          <div className="mt-6">
+            <div className="bg-gray-800/30 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
+              <h2 className="text-xl font-bold text-white mb-4 flex items-center">
+                <div className="w-2 h-2 rounded-full bg-gradient-to-r from-yellow-500 to-orange-400 animate-pulse mr-3"></div>
+                Market Overview (KuCoin Data)
+              </h2>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -356,6 +496,7 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
                     <th className="text-right py-4 px-6 text-slate-400 font-medium">24h Change</th>
                     <th className="text-right py-4 px-6 text-slate-400 font-medium">Volume (24h)</th>
                     <th className="text-center py-4 px-6 text-slate-400 font-medium">Signal</th>
+                    <th className="text-center py-2 text-gray-400">Data Source</th>
                     <th className="text-center py-4 px-6 text-slate-400 font-medium">Confidence</th>
                   </tr>
                 </thead>
@@ -363,7 +504,7 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
                   {marketData.map(data => {
                     const signal = signals.find(s => s.symbol === data.symbol);
                     return (
-                      <tr 
+                      <tr key={data.symbol} className="border-b border-gray-800/50 hover:bg-gray-800/20 transition-colors">
                         key={data.symbol} 
                         className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors cursor-pointer"
                         onClick={() => setSelectedSymbol(data.symbol)}
@@ -393,7 +534,7 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
                         </td>
                         <td className="py-4 px-6 text-center">
                           {signal ? (
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                               signal.action === 'BUY' 
                                 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                                 : signal.action === 'SELL'
@@ -405,6 +546,11 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
                           ) : (
                             <span className="text-slate-500 text-xs">No Signal</span>
                           )}
+                        </td>
+                        <td className="py-3 text-center">
+                          <span className="px-2 py-1 rounded text-xs bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                            KuCoin
+                          </span>
                         </td>
                         <td className="py-4 px-6 text-center">
                           {signal ? (
@@ -422,7 +568,8 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
               </table>
             </div>
           </div>
-        </div>
+          </div>
+        )}
       </main>
     </div>
   );

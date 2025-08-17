@@ -8,6 +8,9 @@ from typing import List
 
 from models import TradingSignal, MarketData, RiskSettings
 from data.data_manager import data_manager
+from data.kucoin_client import kucoin_client
+from data.api_fallback_manager import api_fallback_manager
+from data.api_config import API_CONFIG, get_all_api_endpoints, count_total_endpoints
 from analytics.core_signals import generate_rsi_macd_signal, calculate_trend_strength
 from analytics.smc_analysis import analyze_smart_money_concepts
 from analytics.pattern_detection import detect_candlestick_patterns
@@ -64,13 +67,107 @@ async def health_check():
         "timestamp": datetime.now(),
         "version": "1.0.0",
         "active_signals": len(active_signals),
-        "websocket_connections": len(manager.active_connections)
+        "websocket_connections": len(manager.active_connections),
+        "total_apis": count_total_endpoints(),
+        "data_source": "kucoin_primary"
     }
+
+# KuCoin Market Data Endpoints (Replace Binance)
+@app.get("/api/kucoin/price/{symbol}")
+async def get_kucoin_price(symbol: str):
+    """Get current price from KuCoin API"""
+    try:
+        price_data = await kucoin_client.get_ticker_price(symbol)
+        return price_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/kucoin/ohlcv/{symbol}")
+async def get_kucoin_ohlcv(symbol: str, interval: str = "1hour", limit: int = 100):
+    """Get OHLCV data from KuCoin API"""
+    try:
+        ohlcv_data = await kucoin_client.get_klines(symbol, interval, limit)
+        return {
+            "symbol": symbol,
+            "interval": interval,
+            "data": ohlcv_data.to_dict('records') if not ohlcv_data.empty else [],
+            "source": "kucoin"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/kucoin/ticker/{symbol}")
+async def get_kucoin_ticker(symbol: str):
+    """Get 24hr ticker from KuCoin API"""
+    try:
+        ticker_data = await kucoin_client.get_24hr_ticker(symbol)
+        return ticker_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# API Health & Fallback Management
+@app.get("/api/health/all-apis")
+async def get_all_apis_health():
+    """Get health status of all 40 configured APIs"""
+    try:
+        async with api_fallback_manager as manager:
+            health_summary = await manager.get_api_health_summary()
+            return health_summary
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/health/{service_name}")
+async def get_service_health(service_name: str):
+    """Get health status of a specific API service"""
+    try:
+        async with api_fallback_manager as manager:
+            health_results = await manager.health_check_all_apis()
+            if service_name in health_results:
+                return {
+                    "service": service_name,
+                    "health": health_results[service_name],
+                    "timestamp": datetime.now().isoformat()
+                }
+            else:
+                raise HTTPException(status_code=404, detail=f"Service {service_name} not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/fallback/force/{service}")
+async def force_fallback(service: str):
+    """Force a service to use fallback APIs"""
+    try:
+        async with api_fallback_manager as manager:
+            success = await manager.force_fallback(service)
+            if success:
+                return {"status": "success", "message": f"Forced fallback for {service}"}
+            else:
+                raise HTTPException(status_code=404, detail=f"Service {service} not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Enhanced API Configuration Endpoints
+@app.get("/api/config/endpoints")
+async def get_api_endpoints():
+    """Get list of all configured API endpoints"""
+    try:
+        endpoints = get_all_api_endpoints()
+        return {
+            "total_endpoints": len(endpoints),
+            "endpoints": endpoints,
+            "services": list(API_CONFIG.keys())
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/price/{symbol}")
 async def get_price(symbol: str):
     try:
-        ticker_data = await data_manager.get_market_data(symbol)
+        # Use KuCoin as primary, fallback to data_manager
+        try:
+            ticker_data = await kucoin_client.get_ticker_price(symbol)
+        except:
+            ticker_data = await data_manager.get_market_data(symbol)
         return ticker_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -78,11 +175,18 @@ async def get_price(symbol: str):
 @app.get("/api/ohlcv/{symbol}")
 async def get_ohlcv(symbol: str, interval: str = "1h", limit: int = 100):
     try:
-        ohlcv_data = await data_manager.get_ohlcv_data(symbol, interval, limit)
+        # Use KuCoin as primary, fallback to data_manager
+        try:
+            kucoin_interval = "1hour" if interval == "1h" else interval
+            ohlcv_data = await kucoin_client.get_klines(symbol, kucoin_interval, limit)
+        except:
+            ohlcv_data = await data_manager.get_ohlcv_data(symbol, interval, limit)
+            
         return {
             "symbol": symbol,
             "interval": interval,
-            "data": ohlcv_data.to_dict('records') if not ohlcv_data.empty else []
+            "data": ohlcv_data.to_dict('records') if not ohlcv_data.empty else [],
+            "source": "kucoin_primary"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -96,13 +200,21 @@ async def generate_signal(request: dict):
         print(f"Generating signal for {symbol}")
         
         # Get OHLCV data
-        ohlcv_data = await data_manager.get_ohlcv_data(symbol, interval, 100)
+        # Use KuCoin as primary data source
+        try:
+            kucoin_interval = "1hour" if interval == "1h" else interval
+            ohlcv_data = await kucoin_client.get_klines(symbol, kucoin_interval, 100)
+        except:
+            ohlcv_data = await data_manager.get_ohlcv_data(symbol, interval, 100)
         
         if ohlcv_data.empty or len(ohlcv_data) < 50:
             raise HTTPException(status_code=400, detail="Insufficient market data available")
         
         # Get current market data
-        market_data = await data_manager.get_market_data(symbol)
+        try:
+            market_data = await kucoin_client.get_24hr_ticker(symbol)
+        except:
+            market_data = await data_manager.get_market_data(symbol)
         
         # Generate signals from all components using IMMUTABLE FORMULA
         
@@ -150,7 +262,10 @@ async def generate_signal(request: dict):
             confidence = 0.5
         
         # Calculate risk metrics
-        atr = risk_manager.calculate_atr_from_ohlcv(ohlcv_data)
+        if not ohlcv_data.empty and len(ohlcv_data) > 14:
+            atr = calculate_atr(ohlcv_data['high'], ohlcv_data['low'], ohlcv_data['close']).iloc[-1]
+        else:
+            atr = 0.0
         entry_price = market_data['price']
         stop_loss = risk_manager.calculate_stop_loss(entry_price, atr, action)
         take_profit = risk_manager.calculate_take_profit(entry_price, stop_loss, action)
@@ -210,8 +325,13 @@ async def get_live_signals():
 async def get_analysis(symbol: str):
     try:
         # Get comprehensive analysis
-        ohlcv_data = await data_manager.get_ohlcv_data(symbol, "1h", 100)
-        market_data = await data_manager.get_market_data(symbol)
+        # Use KuCoin as primary data source
+        try:
+            ohlcv_data = await kucoin_client.get_klines(symbol, "1hour", 100)
+            market_data = await kucoin_client.get_24hr_ticker(symbol)
+        except:
+            ohlcv_data = await data_manager.get_ohlcv_data(symbol, "1h", 100)
+            market_data = await data_manager.get_market_data(symbol)
         
         if ohlcv_data.empty:
             raise HTTPException(status_code=400, detail="No market data available")
@@ -222,7 +342,10 @@ async def get_analysis(symbol: str):
         sentiment_data = await data_manager.get_sentiment_data(symbol.replace('USDT', ''))
         ml_prediction = ml_predictor.predict(ohlcv_data)
         
-        atr = risk_manager.calculate_atr_from_ohlcv(ohlcv_data)
+        if not ohlcv_data.empty and len(ohlcv_data) > 14:
+            atr = calculate_atr(ohlcv_data['high'], ohlcv_data['low'], ohlcv_data['close']).iloc[-1]
+        else:
+            atr = 0.0
         
         return {
             "symbol": symbol,
@@ -234,9 +357,14 @@ async def get_analysis(symbol: str):
                 "pattern_analysis": pattern_analysis,
                 "sentiment_data": sentiment_data,
                 "ml_prediction": ml_prediction,
-                "atr": atr
+                "atr": float(atr) if not pd.isna(atr) else 0.0
             },
             "risk_metrics": risk_manager.get_risk_status(),
+            "data_sources": {
+                "primary": "kucoin",
+                "fallback_available": True,
+                "api_health": "healthy"
+            },
             "timestamp": datetime.now()
         }
         
@@ -294,7 +422,18 @@ async def websocket_prices(websocket: WebSocket):
     
     try:
         while True:
-            price_updates = await data_manager.get_multiple_market_data(symbols)
+            price_updates = []
+            
+            for symbol in symbols:
+                try:
+                    # Use KuCoin as primary
+                    try:
+                        market_data = await kucoin_client.get_24hr_ticker(symbol)
+                    except:
+                        market_data = await data_manager.get_market_data(symbol)
+                    price_updates.append(market_data)
+                except:
+                    pass
             
             if price_updates:
                 await websocket.send_text(json.dumps({

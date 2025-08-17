@@ -51,6 +51,34 @@ export class ApiService {
   async getHealth() {
     return this.get('/health');
   }
+
+  async getKuCoinPrice(symbol: string) {
+    return this.get(`/api/kucoin/price/${symbol}`);
+  }
+
+  async getKuCoinOHLCV(symbol: string, interval: string = '1hour', limit: number = 100) {
+    return this.get(`/api/kucoin/ohlcv/${symbol}?interval=${interval}&limit=${limit}`);
+  }
+
+  async getKuCoinTicker(symbol: string) {
+    return this.get(`/api/kucoin/ticker/${symbol}`);
+  }
+
+  async getAllApisHealth() {
+    return this.get('/api/health/all-apis');
+  }
+
+  async getServiceHealth(serviceName: string) {
+    return this.get(`/api/health/${serviceName}`);
+  }
+
+  async forceApiFailover(service: string) {
+    return this.post(`/api/fallback/force/${service}`, {});
+  }
+
+  async getApiEndpoints() {
+    return this.get('/api/config/endpoints');
+  }
 }
 
 export const apiService = new ApiService();
