@@ -11,18 +11,26 @@
   },
   "dependencies": {
     "@headlessui/react": "^1.7.17",
+    "@react-three/fiber": "^8.15.12",
+    "@react-three/drei": "^9.92.7",
     "bcrypt": "^6.0.0",
     "chart.js": "^4.5.0",
     "chartjs-adapter-date-fns": "^3.0.0",
     "clsx": "^2.0.0",
+    "d3": "^7.8.5",
     "date-fns": "^2.30.0",
+    "framer-motion": "^10.16.16",
     "jose": "^6.0.12",
     "lucide-react": "^0.344.0",
     "passlib": "^0.3.0",
+    "plotly.js": "^2.27.1",
     "react": "^18.3.1",
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^18.3.1",
-    "recharts": "^2.8.0"
+    "react-plotly.js": "^2.6.0",
+    "recharts": "^2.8.0",
+    "three": "^0.158.0",
+    "ws": "^8.14.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
