@@ -5,7 +5,7 @@ import asyncio
 import json
 import pandas as pd
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from models import TradingSignal, MarketData, RiskSettings
 from auth.jwt_auth import verify_token, get_current_user, require_admin, create_access_token, authenticate_user
@@ -38,6 +38,8 @@ from database.models import TradingSession, SignalRecord, TradeRecord, SystemMet
 from sqlalchemy.orm import Session
 from fastapi import Depends
 
+import os
+
 app = FastAPI(title="HTS Trading System", version="1.0.0")
 
 # Initialize security
@@ -51,7 +53,15 @@ async def startup_event():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000", "http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://localhost:3001", 
+        "http://127.0.0.1:3000", 
+        "http://localhost:5173", 
+        "http://127.0.0.1:5173",
+        "https://*.vercel.app",
+        "https://your-frontend-domain.vercel.app"  # Replace with your actual Vercel domain
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -1758,5 +1768,6 @@ async def shutdown_event():
 
 if __name__ == "__main__":
     import uvicorn
-    print("Starting HTS Trading System Backend with Analytics...")
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))
+    print(f"Starting HTS Trading System Backend with Analytics on port {port}...")
+    uvicorn.run(app, host="0.0.0.0", port=port, reload=False)
