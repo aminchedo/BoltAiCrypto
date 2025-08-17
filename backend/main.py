@@ -1,5 +1,6 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer
 import asyncio
 import json
 import pandas as pd
@@ -7,6 +8,8 @@ from datetime import datetime
 from typing import List
 
 from models import TradingSignal, MarketData, RiskSettings
+from auth.jwt_auth import verify_token, get_current_user, require_admin, create_access_token, authenticate_user
+from logging_config import app_logger, log_signal, log_trade, log_error, log_api_call, log_risk_alert
 from data.data_manager import data_manager
 from data.kucoin_client import kucoin_client
 from data.api_fallback_manager import api_fallback_manager
@@ -27,6 +30,7 @@ from risk.advanced_risk_manager import advanced_risk_manager
 # Import new advanced analytics components
 from analytics.advanced_smc import advanced_smc_analyzer
 from analytics.ml_ensemble import ml_ensemble_predictor
+from analytics.multi_timeframe import mtf_analyzer, analyze_symbol_mtf
 
 # Import database components
 from database.connection import get_db, init_db
@@ -36,10 +40,14 @@ from fastapi import Depends
 
 app = FastAPI(title="HTS Trading System", version="1.0.0")
 
+# Initialize security
+security = HTTPBearer()
+
 # Initialize database on startup
 @app.on_event("startup")
 async def startup_event():
     init_db()
+    app_logger.log_system_event("startup", "HTS Trading System started")
 
 app.add_middleware(
     CORSMiddleware,
@@ -79,6 +87,39 @@ system_settings = {
     'min_volume_usd': 5000000,
     'manual_confirmation': True
 }
+
+# Authentication endpoints
+@app.post("/auth/login")
+async def login(credentials: dict):
+    username = credentials.get("username")
+    password = credentials.get("password")
+    
+    if not username or not password:
+        log_error("auth_error", "Missing username or password")
+        raise HTTPException(status_code=400, detail="Username and password required")
+    
+    user = authenticate_user(username, password)
+    if not user:
+        log_error("auth_error", f"Failed login attempt for user: {username}")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    access_token = create_access_token(data={"sub": user["username"]})
+    
+    app_logger.log_system_event("user_login", f"User {username} logged in successfully")
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "username": user["username"],
+            "email": user["email"],
+            "is_admin": user["is_admin"]
+        }
+    }
+
+@app.get("/auth/me")
+async def get_current_user_info(current_user: dict = Depends(get_current_user)):
+    return current_user
 
 @app.get("/health")
 async def health_check():
@@ -1285,6 +1326,106 @@ async def get_database_risk_limits(db: Session = Depends(get_db)):
             "timestamp": datetime.now()
         }
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Multi-timeframe analysis endpoint
+@app.get("/api/analysis/multi-timeframe/{symbol}")
+async def get_multi_timeframe_analysis(symbol: str, current_user: dict = Depends(get_current_user)):
+    """Get comprehensive multi-timeframe analysis for a symbol"""
+    try:
+        start_time = datetime.now()
+        
+        analysis = await analyze_symbol_mtf(symbol)
+        
+        # Log the analysis request
+        response_time = (datetime.now() - start_time).total_seconds()
+        log_api_call(f"/api/analysis/multi-timeframe/{symbol}", "GET", response_time, 200)
+        
+        # Log the analysis result
+        app_logger.log_system_event("multi_timeframe_analysis", f"Analysis completed for {symbol}", {
+            "symbol": symbol,
+            "recommendation": analysis.get("recommendation", {}).get("action", "UNKNOWN"),
+            "confidence": analysis.get("recommendation", {}).get("confidence", 0),
+            "trend_alignment": analysis.get("trend_alignment", {}).get("alignment", 0)
+        })
+        
+        return {
+            "status": "success",
+            "data": analysis,
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        log_error("multi_timeframe_analysis_error", str(e), {"symbol": symbol})
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Risk metrics endpoint
+@app.get("/api/risk/metrics")
+async def get_risk_metrics(current_user: dict = Depends(get_current_user)):
+    """Get comprehensive risk metrics"""
+    try:
+        # Get basic risk status from existing risk manager
+        basic_risk = risk_manager.get_current_status()
+        
+        # Calculate additional metrics
+        portfolio_var = 0.15  # Placeholder - calculate from positions
+        sharpe_ratio = 1.85   # Placeholder - calculate from returns
+        max_drawdown = abs(basic_risk.get("daily_loss_pct", 0))
+        
+        risk_metrics = {
+            "current_equity": basic_risk.get("current_equity", 10000),
+            "daily_loss_pct": basic_risk.get("daily_loss_pct", 0),
+            "consecutive_losses": basic_risk.get("consecutive_losses", 0),
+            "daily_loss_limit_hit": basic_risk.get("daily_loss_limit_hit", False),
+            "consecutive_loss_limit_hit": basic_risk.get("consecutive_loss_limit_hit", False),
+            "position_size_multiplier": basic_risk.get("position_size_multiplier", 1.0),
+            "max_risk_per_trade": basic_risk.get("max_risk_per_trade", 2.0),
+            "portfolio_var": portfolio_var,
+            "sharpe_ratio": sharpe_ratio,
+            "max_drawdown": max_drawdown
+        }
+        
+        # Log risk metrics request
+        log_api_call("/api/risk/metrics", "GET", 0.1, 200)
+        
+        return risk_metrics
+    except Exception as e:
+        log_error("risk_metrics_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Portfolio positions endpoint (mock for now)
+@app.get("/api/portfolio/positions")
+async def get_portfolio_positions(current_user: dict = Depends(get_current_user)):
+    """Get current portfolio positions"""
+    try:
+        # Mock positions data - replace with real portfolio data
+        positions = [
+            {
+                "symbol": "BTCUSDT",
+                "side": "LONG",
+                "size": 0.5,
+                "entry_price": 45000,
+                "current_price": 46200,
+                "unrealized_pnl": 600,
+                "unrealized_pnl_pct": 2.67,
+                "margin_used": 2250
+            },
+            {
+                "symbol": "ETHUSDT",
+                "side": "SHORT",
+                "size": 2.0,
+                "entry_price": 3200,
+                "current_price": 3150,
+                "unrealized_pnl": 100,
+                "unrealized_pnl_pct": 1.56,
+                "margin_used": 1600
+            }
+        ]
+        
+        log_api_call("/api/portfolio/positions", "GET", 0.05, 200)
+        
+        return {"positions": positions}
+    except Exception as e:
+        log_error("portfolio_positions_error", str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
