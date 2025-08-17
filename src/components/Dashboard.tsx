@@ -3,10 +3,13 @@ import SignalCard from './SignalCard';
 import TradingChart from './TradingChart';
 import RiskPanel from './RiskPanel';
 import PortfolioPanel from './PortfolioPanel';
+import BacktestPanel from './BacktestPanel';
+import PnLDashboard from './PnLDashboard';
 import { TradingSignal, MarketData, OHLCVData } from '../types';
 import { tradingEngine } from '../services/tradingEngine';
 import { binanceApi } from '../services/binanceApi';
-import { Activity, Wifi, WifiOff, RefreshCw, BarChart3, Zap } from 'lucide-react';
+import { Activity, Wifi, WifiOff, RefreshCw, BarChart3, Zap, TrendingUp, PieChart, DollarSign, TestTube, Settings, MessageSquare } from 'lucide-react';
+import clsx from 'clsx';
 
 const Dashboard: React.FC = () => {
   const [signals, setSignals] = useState<TradingSignal[]>([]);
@@ -270,22 +273,25 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
         <div className="mb-6">
           <div className="flex space-x-1 bg-gray-800/30 backdrop-blur-lg rounded-xl p-1 border border-gray-700/50">
             {[
-              { id: 'signals', label: 'Live Signals', icon: '📊' },
-              { id: 'portfolio', label: 'Portfolio', icon: '💼' },
-              { id: 'analytics', label: 'Analytics', icon: '📈' },
-              { id: 'apis', label: 'API Status', icon: '🔗' }
+              { id: 'signals', label: 'Live Signals', icon: TrendingUp },
+              { id: 'portfolio', label: 'Portfolio', icon: PieChart },
+              { id: 'pnl', label: 'P&L Analytics', icon: DollarSign },
+              { id: 'backtest', label: 'Backtesting', icon: TestTube },
+              { id: 'notifications', label: 'Notifications', icon: MessageSquare },
+              { id: 'apis', label: 'API Status', icon: Activity }
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                className={clsx(
+                  "flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 flex-1 justify-center",
                   activeTab === tab.id
                     ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25'
                     : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-                }`}
+                )}
               >
-                <span>{tab.icon}</span>
-                <span>{tab.label}</span>
+                <tab.icon className="w-4 h-4" />
+                <span className="hidden sm:inline">{tab.label}</span>
               </button>
             ))}
           </div>
@@ -427,6 +433,140 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
                 ) : (
                   <div className="text-center text-gray-400 py-8">Loading API health data...</div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'pnl' && (
+            <div className="col-span-12">
+              <PnLDashboard />
+            </div>
+          )}
+
+          {activeTab === 'backtest' && (
+            <div className="col-span-12">
+              <BacktestPanel />
+            </div>
+          )}
+
+          {activeTab === 'notifications' && (
+            <div className="col-span-12">
+              <div className="bg-gray-800/30 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
+                <h2 className="text-xl font-bold text-white mb-6 flex items-center">
+                  <div className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-400 animate-pulse mr-3"></div>
+                  Telegram Notifications
+                </h2>
+                
+                <div className="space-y-6">
+                  {/* Notification Settings */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-white">Notification Settings</h3>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
+                          <span className="text-gray-300">Signal Alerts</span>
+                          <button className="w-12 h-6 bg-blue-600 rounded-full relative">
+                            <div className="w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5"></div>
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
+                          <span className="text-gray-300">Portfolio Alerts</span>
+                          <button className="w-12 h-6 bg-gray-600 rounded-full relative">
+                            <div className="w-5 h-5 bg-white rounded-full absolute left-0.5 top-0.5"></div>
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
+                          <span className="text-gray-300">Risk Alerts</span>
+                          <button className="w-12 h-6 bg-blue-600 rounded-full relative">
+                            <div className="w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5"></div>
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
+                          <span className="text-gray-300">Daily Summary</span>
+                          <button className="w-12 h-6 bg-blue-600 rounded-full relative">
+                            <div className="w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5"></div>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-white">Configuration</h3>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Telegram Chat ID
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Enter your chat ID"
+                            className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Min Confidence Threshold
+                          </label>
+                          <input
+                            type="range"
+                            min="0.5"
+                            max="1"
+                            step="0.1"
+                            defaultValue="0.7"
+                            className="w-full"
+                          />
+                          <div className="flex justify-between text-xs text-gray-400 mt-1">
+                            <span>50%</span>
+                            <span>70%</span>
+                            <span>100%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Test Notification */}
+                  <div className="border-t border-gray-700 pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">Test Connection</h3>
+                        <p className="text-gray-400 text-sm">Send a test message to verify your Telegram setup</p>
+                      </div>
+                      <button className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white transition-colors">
+                        <MessageSquare className="w-4 h-4" />
+                        <span>Send Test</span>
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Recent Notifications */}
+                  <div className="border-t border-gray-700 pt-6">
+                    <h3 className="text-lg font-semibold text-white mb-4">Recent Notifications</h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                          <span className="text-gray-300">BUY signal for BTCUSDT at $45,000</span>
+                        </div>
+                        <span className="text-gray-500 text-sm">2 min ago</span>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+                          <span className="text-gray-300">Portfolio risk threshold reached</span>
+                        </div>
+                        <span className="text-gray-500 text-sm">1 hour ago</span>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                          <span className="text-gray-300">Daily P&L summary: +$125.50</span>
+                        </div>
+                        <span className="text-gray-500 text-sm">Yesterday</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
