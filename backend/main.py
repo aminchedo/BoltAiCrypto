@@ -1590,21 +1590,158 @@ async def websocket_endpoint(websocket: WebSocket):
             symbol_subs.discard(websocket)
         logger.info("WebSocket client disconnected")
 
+# Hugging Face AI endpoints
+@app.get("/api/ai/sentiment/{symbol}")
+async def analyze_sentiment(symbol: str):
+    """Analyze market sentiment for a symbol"""
+    try:
+        from analytics.huggingface_ai import huggingface_ai
+        
+        # Get recent news (mock data for demo)
+        news_texts = [
+            f"{symbol} shows strong performance amid market volatility",
+            f"Analysts upgrade {symbol} price target following earnings",
+            f"Market uncertainty affects {symbol} trading volume"
+        ]
+        
+        sentiment_analysis = await huggingface_ai.analyze_market_sentiment(news_texts)
+        log_api_call(f"/api/ai/sentiment/{symbol}", "GET", 0.25, 200)
+        
+        return sentiment_analysis
+        
+    except Exception as e:
+        log_error("sentiment_analysis_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/ai/market-analysis")
+async def generate_market_analysis(request: dict):
+    """Generate AI-powered market analysis"""
+    try:
+        from analytics.huggingface_ai import huggingface_ai
+        
+        symbol = request.get('symbol')
+        market_data = request.get('market_data', {})
+        
+        if not symbol:
+            raise HTTPException(status_code=400, detail="Symbol is required")
+        
+        analysis = await huggingface_ai.generate_market_analysis(market_data)
+        log_api_call("/api/ai/market-analysis", "POST", 0.35, 200)
+        
+        return {
+            "symbol": symbol,
+            "analysis": analysis,
+            "timestamp": time.time()
+        }
+        
+    except Exception as e:
+        log_error("market_analysis_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/ai/insights/{symbol}")
+async def get_trading_insights(symbol: str):
+    """Get comprehensive AI-powered trading insights"""
+    try:
+        from analytics.huggingface_ai import huggingface_ai
+        from analytics.realtime_stream import stream_manager
+        
+        # Get current market data
+        market_data = {}
+        if symbol in stream_manager.market_data_cache:
+            cached_data = stream_manager.market_data_cache[symbol]
+            market_data = {
+                'symbol': symbol,
+                'price': cached_data.price,
+                'volume': cached_data.volume,
+                'change_24h': (cached_data.price - 100) / 100 * 100,  # Mock calculation
+                'volatility': 0.03  # Mock volatility
+            }
+        else:
+            # Mock data if not available
+            market_data = {
+                'symbol': symbol,
+                'price': 100.0,
+                'volume': 1000000,
+                'change_24h': 2.5,
+                'volatility': 0.03
+            }
+        
+        insights = await huggingface_ai.generate_trading_insights(symbol, market_data)
+        log_api_call(f"/api/ai/insights/{symbol}", "GET", 0.45, 200)
+        
+        return insights
+        
+    except Exception as e:
+        log_error("trading_insights_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/ai/summarize-news")
+async def summarize_news(request: dict):
+    """Summarize financial news articles"""
+    try:
+        from analytics.huggingface_ai import huggingface_ai
+        
+        news_texts = request.get('news_texts', [])
+        if not news_texts:
+            raise HTTPException(status_code=400, detail="news_texts is required")
+        
+        summaries = await huggingface_ai.summarize_news(news_texts)
+        log_api_call("/api/ai/summarize-news", "POST", 0.30, 200)
+        
+        return {
+            "summaries": summaries,
+            "count": len(summaries),
+            "timestamp": time.time()
+        }
+        
+    except Exception as e:
+        log_error("news_summarization_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/ai/ask-question")
+async def ask_market_question(request: dict):
+    """Ask questions about market data using AI"""
+    try:
+        from analytics.huggingface_ai import huggingface_ai
+        
+        question = request.get('question')
+        context = request.get('context')
+        
+        if not question or not context:
+            raise HTTPException(status_code=400, detail="Both question and context are required")
+        
+        answer = await huggingface_ai.answer_market_question(question, context)
+        log_api_call("/api/ai/ask-question", "POST", 0.25, 200)
+        
+        return {
+            "question": question,
+            "answer": answer,
+            "timestamp": time.time()
+        }
+        
+    except Exception as e:
+        log_error("question_answering_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Startup event to initialize real-time streaming
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on startup"""
     try:
         from analytics.realtime_stream import stream_manager
+        from analytics.huggingface_ai import huggingface_ai
         
         # Initialize the stream manager
         await stream_manager.initialize()
+        
+        # Initialize Hugging Face AI models
+        await huggingface_ai.initialize_models()
         
         # Start the WebSocket server in background
         import asyncio
         asyncio.create_task(stream_manager.start_server('localhost', 8765))
         
-        logger.info("Real-time analytics services started")
+        logger.info("Real-time analytics and AI services started")
         
     except Exception as e:
         logger.error(f"Failed to start analytics services: {e}")

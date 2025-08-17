@@ -18,6 +18,7 @@ import Market3DVisualization from './MarketVisualization3D';
 import CorrelationHeatMap from './CorrelationHeatMap';
 import MarketDepthChart from './MarketDepthChart';
 import RealTimeRiskMonitor from './RealTimeRiskMonitor';
+import AIInsightsPanel from './AIInsightsPanel';
 
 interface Signal {
   symbol: string;
@@ -66,7 +67,7 @@ interface Strategy {
 }
 
 const PredictiveAnalyticsDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'overview' | '3d' | 'depth' | 'correlations' | 'strategies' | 'risk'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | '3d' | 'depth' | 'correlations' | 'strategies' | 'risk' | 'ai'>('overview');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedSymbol, setSelectedSymbol] = useState<string>('BTCUSDT');
   const [isConnected, setIsConnected] = useState(false);
@@ -291,10 +292,11 @@ const PredictiveAnalyticsDashboard: React.FC = () => {
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: Activity },
+    { id: 'ai', label: 'AI Insights', icon: Brain },
     { id: '3d', label: '3D Market', icon: Layers },
     { id: 'depth', label: 'Market Depth', icon: BarChart3 },
     { id: 'correlations', label: 'Correlations', icon: TrendingUp },
-    { id: 'strategies', label: 'Strategies', icon: Brain },
+    { id: 'strategies', label: 'Strategies', icon: Settings },
     { id: 'risk', label: 'Risk Monitor', icon: Shield }
   ];
 
@@ -479,6 +481,19 @@ const PredictiveAnalyticsDashboard: React.FC = () => {
                   )}
                 </div>
               </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'ai' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <AIInsightsPanel
+                selectedSymbol={selectedSymbol}
+                onSymbolChange={setSelectedSymbol}
+              />
             </motion.div>
           )}
 

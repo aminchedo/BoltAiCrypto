@@ -13,8 +13,10 @@ A comprehensive real-time trading analytics platform with advanced machine learn
 ### 🧠 Advanced Analytics
 - **Predictive ML Models**: Ensemble of Random Forest, Gradient Boosting, and Neural Networks
 - **Auto-Strategy Generation**: AI-powered trading strategy creation based on market conditions
+- **Hugging Face AI Integration**: Advanced NLP models for sentiment analysis and market intelligence
 - **Correlation Analysis**: Dynamic correlation matrices with interactive heat maps
 - **Feature Engineering**: 50+ technical indicators and market microstructure features
+- **AI Market Intelligence**: Real-time sentiment analysis, news summarization, and Q&A
 
 ### 📊 Advanced Visualizations
 - **3D Market Visualization**: Interactive 3D representation of market relationships
@@ -100,6 +102,13 @@ npm run dev
 - `GET /api/analytics/performance-metrics` - Get system performance metrics
 - `WS /ws/realtime` - WebSocket endpoint for real-time data
 
+### AI Endpoints (Hugging Face Integration)
+- `GET /api/ai/sentiment/{symbol}` - Analyze market sentiment using FinBERT
+- `POST /api/ai/market-analysis` - Generate AI-powered market analysis
+- `GET /api/ai/insights/{symbol}` - Get comprehensive AI trading insights
+- `POST /api/ai/summarize-news` - Summarize financial news articles
+- `POST /api/ai/ask-question` - Ask questions about market data using AI
+
 ### WebSocket Messages
 ```json
 // Subscribe to symbols
@@ -156,6 +165,12 @@ The system uses an ensemble approach combining:
 - Quick prediction and strategy generation
 - Performance metrics and connection status
 
+### AI Insights Tab
+- Comprehensive AI-powered trading insights
+- Real-time sentiment analysis with FinBERT
+- AI-generated market analysis and recommendations
+- Interactive AI chat assistant for market questions
+
 ### 3D Market Tab
 - Interactive 3D visualization of market relationships
 - Sphere size represents volume, color represents price change
@@ -204,6 +219,9 @@ The system uses an ensemble approach combining:
 
 ### Environment Variables
 ```bash
+# Hugging Face Configuration
+HUGGINGFACE_API_KEY=your_huggingface_api_key_here
+
 # Backend Configuration
 REDIS_URL=redis://localhost:6379
 DATABASE_URL=postgresql://user:pass@localhost/db
@@ -219,6 +237,11 @@ PREDICTION_HORIZON=5         # time steps
 MAX_POSITION_SIZE=0.05       # 5% of portfolio
 VAR_CONFIDENCE=0.95          # 95% confidence
 RISK_CHECK_INTERVAL=1        # seconds
+
+# Trading Configuration
+DEFAULT_SYMBOLS=BTCUSDT,ETHUSDT,ADAUSDT,SOLUSDT,AAPL,GOOGL,TSLA,MSFT
+MAX_CONCURRENT_CONNECTIONS=1000
+SIGNAL_GENERATION_INTERVAL=0.1
 ```
 
 ### Strategy Configuration
