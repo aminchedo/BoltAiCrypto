@@ -31,13 +31,11 @@ const Dashboard: React.FC = () => {
     const priceInterval = setInterval(updateMarketData, 3000); // Every 3 seconds
     const signalInterval = setInterval(refreshSignals, 30000); // Every 30 seconds
     const healthInterval = setInterval(checkSystemHealth, 15000); // Every 15 seconds
+    const apiHealthInterval = setInterval(loadApiHealth, 60000); // Check API health every minute
 
     return () => {
       clearInterval(priceInterval);
       clearInterval(signalInterval);
-    const healthInterval = setInterval(checkSystemHealth, 30000); // Check every 30s
-    const apiHealthInterval = setInterval(loadApiHealth, 60000); // Check API health every minute
-    return () => {
       clearInterval(healthInterval);
       clearInterval(apiHealthInterval);
     };
@@ -189,32 +187,17 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
     if (isConnected && systemHealth?.status === 'healthy' && apiHealthy) {
       return { 
         status: 'Connected', 
-        color: 'text-green-400',
-        icon: '🟢',
-        details: `${apiHealthData?.healthy_apis || 0}/${apiHealthData?.total_apis || 0} APIs`
-      };
-        status: 'Connected', 
         color: 'text-emerald-400',
         icon: <Wifi className="w-4 h-4" />
       };
     } else if (isConnected) {
       return { 
         status: 'Connected (Issues)', 
-        color: 'text-yellow-400',
-        icon: '🟡',
-        details: 'Some APIs degraded'
-      };
-        status: 'Connected (Issues)', 
         color: 'text-amber-400',
         icon: <Wifi className="w-4 h-4" />
       };
     } else {
       return { 
-        status: 'Disconnected', 
-        color: 'text-red-400',
-        icon: '🔴',
-        details: 'Connection lost'
-      };
         status: 'Disconnected', 
         color: 'text-red-400',
         icon: <WifiOff className="w-4 h-4" />
@@ -232,15 +215,6 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3">
-                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/25">
-                  <span className="text-white font-bold text-lg">⚡</span>
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-white">HTS Trading System</h1>
-                  <p className="text-xs text-slate-400">KuCoin + 40 API Fallbacks</p>
-                </div>
-              </div>
-              
                 <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600">
                   <Zap className="w-5 h-5 text-white" />
                 </div>
@@ -251,17 +225,10 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
               </div>
               
               <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700/50">
-                <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700/50">
-                  <span className="text-xs">{connectionStatus.icon}</span>
-                  <div className="flex flex-col">
-                    <span className={`text-xs font-medium ${connectionStatus.color}`}>
-                      {connectionStatus.status}
-                    </span>
-                    <span className="text-xs text-slate-500">
-                      {connectionStatus.details}
-                    </span>
-                  </div>
-                </div>
+                {connectionStatus.icon}
+                <span className={`text-xs font-medium ${connectionStatus.color}`}>
+                  {connectionStatus.status}
+                </span>
               </div>
             </div>
             
@@ -325,14 +292,6 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
         </div>
 
         <div className="grid grid-cols-12 gap-8">
-          {/* Live Signals Panel */}
-          <div className="col-span-12 xl:col-span-4">
-            <div className="bg-slate-800/30 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 h-fit">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-white">Live Signals</h2>
-                <div className="flex items-center space-x-2 text-sm text-slate-400">
-                  <Activity className="w-4 h-4" />
-                  <span>{signals.length} active</span>
           {/* Conditional Content Based on Active Tab */}
           {activeTab === 'signals' && (
             <>
@@ -378,43 +337,46 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
                   />
                 </div>
               </div>
-                <h3 className="text-lg font-semibold text-white mb-4">Analysis Details</h3>
-                
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <div className="text-slate-400 mb-1">RSI Value</div>
-                    <div className="text-white font-mono">
-                      {detailedAnalysis.analysis.core_signal?.details?.rsi?.toFixed(2) || 'N/A'}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div className="text-slate-400 mb-1">MACD Histogram</div>
-                    <div className="text-white font-mono">
-                      {detailedAnalysis.analysis.core_signal?.details?.histogram?.toFixed(4) || 'N/A'}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div className="text-slate-400 mb-1">ATR</div>
-                    <div className="text-white font-mono">
-                      {detailedAnalysis.analysis.atr?.toFixed(2) || 'N/A'}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div className="text-slate-400 mb-1">Trend Strength</div>
-                    <div className="text-white font-mono">
-                      {detailedAnalysis.analysis.core_signal?.strength?.toFixed(2) || 'N/A'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
 
-              {/* Risk & Settings Panel */}
+              {/* Analysis Details */}
               <div className="col-span-12 lg:col-span-3">
+                {detailedAnalysis && (
+                  <div className="bg-gray-800/30 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50 mb-6">
+                    <h3 className="text-lg font-semibold text-white mb-4">Analysis Details</h3>
+                    
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <div className="text-slate-400 mb-1">RSI Value</div>
+                        <div className="text-white font-mono">
+                          {detailedAnalysis.analysis.core_signal?.details?.rsi?.toFixed(2) || 'N/A'}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <div className="text-slate-400 mb-1">MACD Histogram</div>
+                        <div className="text-white font-mono">
+                          {detailedAnalysis.analysis.core_signal?.details?.histogram?.toFixed(4) || 'N/A'}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <div className="text-slate-400 mb-1">ATR</div>
+                        <div className="text-white font-mono">
+                          {detailedAnalysis.analysis.atr?.toFixed(2) || 'N/A'}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <div className="text-slate-400 mb-1">Trend Strength</div>
+                        <div className="text-white font-mono">
+                          {detailedAnalysis.analysis.core_signal?.strength?.toFixed(2) || 'N/A'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Risk & Settings Panel */}
                 <RiskPanel />
               </div>
             </>
@@ -471,15 +433,6 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
         </div>
 
         {/* Market Overview Table */}
-        <div className="mt-8">
-          <div className="bg-slate-800/30 backdrop-blur-xl rounded-2xl border border-slate-700/50 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-700/50">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-white">Market Overview</h2>
-                <div className="flex items-center space-x-2 text-sm text-slate-400">
-                  <BarChart3 className="w-4 h-4" />
-                  <span>Real-time data</span>
-                </div>
         {activeTab === 'signals' && (
           <div className="mt-6">
             <div className="bg-gray-800/30 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
@@ -487,87 +440,87 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
                 <div className="w-2 h-2 rounded-full bg-gradient-to-r from-yellow-500 to-orange-400 animate-pulse mr-3"></div>
                 Market Overview (KuCoin Data)
               </h2>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-slate-800/30">
-                    <th className="text-left py-4 px-6 text-slate-400 font-medium">Symbol</th>
-                    <th className="text-right py-4 px-6 text-slate-400 font-medium">Price</th>
-                    <th className="text-right py-4 px-6 text-slate-400 font-medium">24h Change</th>
-                    <th className="text-right py-4 px-6 text-slate-400 font-medium">Volume (24h)</th>
-                    <th className="text-center py-4 px-6 text-slate-400 font-medium">Signal</th>
-                    <th className="text-center py-2 text-gray-400">Data Source</th>
-                    <th className="text-center py-4 px-6 text-slate-400 font-medium">Confidence</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {marketData.map(data => {
-                    const signal = signals.find(s => s.symbol === data.symbol);
-                    return (
-                      <tr key={data.symbol} className="border-b border-gray-800/50 hover:bg-gray-800/20 transition-colors">
-                        key={data.symbol} 
-                        className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors cursor-pointer"
-                        onClick={() => setSelectedSymbol(data.symbol)}
-                      >
-                        <td className="py-4 px-6">
-                          <div className="font-semibold text-white">{data.symbol}</div>
-                        </td>
-                        <td className="py-4 px-6 text-right">
-                          <div className="text-white font-mono text-lg">
-                            ${data.price.toLocaleString('en-US', { 
-                              minimumFractionDigits: 2, 
-                              maximumFractionDigits: 8 
-                            })}
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 text-right">
-                          <div className={`font-mono font-bold ${
-                            data.change_24h >= 0 ? 'text-emerald-400' : 'text-red-400'
-                          }`}>
-                            {data.change_24h >= 0 ? '+' : ''}{data.change_24h.toFixed(2)}%
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 text-right">
-                          <div className="text-slate-300 font-mono">
-                            ${(data.volume / 1000000).toFixed(1)}M
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 text-center">
-                          {signal ? (
-                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                              signal.action === 'BUY' 
-                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                                : signal.action === 'SELL'
-                                ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                                : 'bg-slate-600/20 text-slate-400 border border-slate-500/30'
-                            }`}>
-                              {signal.action}
-                            </span>
-                          ) : (
-                            <span className="text-slate-500 text-xs">No Signal</span>
-                          )}
-                        </td>
-                        <td className="py-3 text-center">
-                          <span className="px-2 py-1 rounded text-xs bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
-                            KuCoin
-                          </span>
-                        </td>
-                        <td className="py-4 px-6 text-center">
-                          {signal ? (
-                            <div className="text-white font-medium">
-                              {(signal.confidence * 100).toFixed(0)}%
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-slate-800/30">
+                      <th className="text-left py-4 px-6 text-slate-400 font-medium">Symbol</th>
+                      <th className="text-right py-4 px-6 text-slate-400 font-medium">Price</th>
+                      <th className="text-right py-4 px-6 text-slate-400 font-medium">24h Change</th>
+                      <th className="text-right py-4 px-6 text-slate-400 font-medium">Volume (24h)</th>
+                      <th className="text-center py-4 px-6 text-slate-400 font-medium">Signal</th>
+                      <th className="text-center py-2 text-gray-400">Data Source</th>
+                      <th className="text-center py-4 px-6 text-slate-400 font-medium">Confidence</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {marketData.map(data => {
+                      const signal = signals.find(s => s.symbol === data.symbol);
+                      return (
+                        <tr 
+                          key={data.symbol} 
+                          className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors cursor-pointer"
+                          onClick={() => setSelectedSymbol(data.symbol)}
+                        >
+                          <td className="py-4 px-6">
+                            <div className="font-semibold text-white">{data.symbol}</div>
+                          </td>
+                          <td className="py-4 px-6 text-right">
+                            <div className="text-white font-mono text-lg">
+                              ${data.price.toLocaleString('en-US', { 
+                                minimumFractionDigits: 2, 
+                                maximumFractionDigits: 8 
+                              })}
                             </div>
-                          ) : (
-                            <span className="text-slate-500">-</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          </td>
+                          <td className="py-4 px-6 text-right">
+                            <div className={`font-mono font-bold ${
+                              data.change_24h >= 0 ? 'text-emerald-400' : 'text-red-400'
+                            }`}>
+                              {data.change_24h >= 0 ? '+' : ''}{data.change_24h.toFixed(2)}%
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 text-right">
+                            <div className="text-slate-300 font-mono">
+                              ${(data.volume / 1000000).toFixed(1)}M
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 text-center">
+                            {signal ? (
+                              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                signal.action === 'BUY' 
+                                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                  : signal.action === 'SELL'
+                                  ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                  : 'bg-slate-600/20 text-slate-400 border border-slate-500/30'
+                              }`}>
+                                {signal.action}
+                              </span>
+                            ) : (
+                              <span className="text-slate-500 text-xs">No Signal</span>
+                            )}
+                          </td>
+                          <td className="py-3 text-center">
+                            <span className="px-2 py-1 rounded text-xs bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                              KuCoin
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 text-center">
+                            {signal ? (
+                              <div className="text-white font-medium">
+                                {(signal.confidence * 100).toFixed(0)}%
+                              </div>
+                            ) : (
+                              <span className="text-slate-500">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
           </div>
         )}
       </main>
