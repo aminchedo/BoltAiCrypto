@@ -24,7 +24,22 @@ from trading.trade_logger import trade_logger
 from trading.pnl_calculator import pnl_calculator
 from risk.advanced_risk_manager import advanced_risk_manager
 
+# Import new advanced analytics components
+from analytics.advanced_smc import advanced_smc_analyzer
+from analytics.ml_ensemble import ml_ensemble_predictor
+
+# Import database components
+from database.connection import get_db, init_db
+from database.models import TradingSession, SignalRecord, TradeRecord, SystemMetrics, RiskLimit
+from sqlalchemy.orm import Session
+from fastapi import Depends
+
 app = FastAPI(title="HTS Trading System", version="1.0.0")
+
+# Initialize database on startup
+@app.on_event("startup")
+async def startup_event():
+    init_db()
 
 app.add_middleware(
     CORSMiddleware,
@@ -197,7 +212,7 @@ async def get_ohlcv(symbol: str, interval: str = "1h", limit: int = 100):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/signals/generate")
-async def generate_signal(request: dict):
+async def generate_signal(request: dict, db: Session = Depends(get_db)):
     try:
         symbol = request.get('symbol', 'BTCUSDT')
         interval = request.get('interval', '1h')
@@ -227,8 +242,8 @@ async def generate_signal(request: dict):
         core_signal = generate_rsi_macd_signal(ohlcv_data)
         rsi_macd_score = core_signal['score']
         
-        # 2. Smart Money Concepts (25% weight)  
-        smc_analysis = analyze_smart_money_concepts(ohlcv_data)
+        # 2. Advanced Smart Money Concepts (25% weight)  
+        smc_analysis = advanced_smc_analyzer.analyze_comprehensive_smc(ohlcv_data)
         smc_score = smc_analysis['score']
         
         # 3. Pattern detection (20% weight)
@@ -239,8 +254,8 @@ async def generate_signal(request: dict):
         sentiment_data = await data_manager.get_sentiment_data(symbol.replace('USDT', ''))
         sentiment_score = sentiment_data['score']
         
-        # 5. ML prediction (5% weight)
-        ml_prediction = ml_predictor.predict(ohlcv_data)
+        # 5. Advanced ML Ensemble prediction (5% weight)
+        ml_prediction = ml_ensemble_predictor.predict_ensemble(ohlcv_data)
         ml_score = ml_prediction['score']
         
         # IMMUTABLE FORMULA - Calculate final score
@@ -303,6 +318,50 @@ async def generate_signal(request: dict):
         
         # Store active signal
         active_signals[symbol] = signal
+        
+        # Save signal to database
+        try:
+            # Get or create active trading session
+            active_session = db.query(TradingSession).filter(TradingSession.is_active == True).first()
+            if not active_session:
+                active_session = TradingSession(
+                    initial_balance=10000.0,
+                    start_time=datetime.now(),
+                    is_active=True
+                )
+                db.add(active_session)
+                db.commit()
+                db.refresh(active_session)
+            
+            # Create signal record
+            signal_record = SignalRecord(
+                session_id=active_session.id,
+                symbol=symbol,
+                action=action,
+                confidence=confidence,
+                final_score=final_score,
+                rsi_macd_score=rsi_macd_score,
+                smc_score=smc_score,
+                pattern_score=pattern_score,
+                sentiment_score=sentiment_score,
+                ml_score=ml_score,
+                price=market_data['price'],
+                volume=market_data.get('volume', 0),
+                atr=float(atr) if not pd.isna(atr) else 0.0,
+                volatility=ohlcv_data['close'].pct_change().std() * 100 if len(ohlcv_data) > 1 else 0.0,
+                signal_strength="STRONG" if confidence > 0.8 else "MODERATE" if confidence > 0.6 else "WEAK",
+                market_condition="TRENDING"  # Could be enhanced with trend analysis
+            )
+            
+            db.add(signal_record)
+            db.commit()
+            db.refresh(signal_record)
+            
+            print(f"Signal saved to database with ID: {signal_record.id}")
+            
+        except Exception as db_error:
+            print(f"Error saving signal to database: {db_error}")
+            db.rollback()
         
         # Broadcast to WebSocket clients
         await manager.broadcast({
@@ -963,6 +1022,265 @@ async def update_risk_limits(limits: dict):
                 'max_var_95': advanced_risk_manager.limits.max_var_95,
                 'max_leverage': advanced_risk_manager.limits.max_leverage,
                 'min_diversification': advanced_risk_manager.limits.min_diversification
+            },
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ===============================
+# NEW PHASE 2 & 4 API ENDPOINTS
+# ===============================
+
+@app.get("/api/analytics/advanced-smc/{symbol}")
+async def get_advanced_smc_analysis(symbol: str, db: Session = Depends(get_db)):
+    """Get comprehensive Smart Money Concepts analysis"""
+    try:
+        # Get OHLCV data
+        ohlcv_data = await kucoin_client.get_klines(symbol, "1hour", 100)
+        
+        if ohlcv_data.empty:
+            raise HTTPException(status_code=400, detail="No market data available")
+        
+        # Perform advanced SMC analysis
+        smc_analysis = advanced_smc_analyzer.analyze_comprehensive_smc(ohlcv_data)
+        
+        return {
+            "status": "success",
+            "symbol": symbol,
+            "data": smc_analysis,
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/ml/train-ensemble/{symbol}")
+async def train_ml_ensemble(symbol: str, db: Session = Depends(get_db)):
+    """Train ML ensemble models for a specific symbol"""
+    try:
+        # Get historical data for training
+        ohlcv_data = await kucoin_client.get_klines(symbol, "1hour", 1000)
+        
+        if len(ohlcv_data) < 200:
+            raise HTTPException(status_code=400, detail="Insufficient data for training")
+        
+        # Train ensemble models
+        training_result = ml_ensemble_predictor.train_ensemble(ohlcv_data)
+        
+        return {
+            "status": "success",
+            "symbol": symbol,
+            "training_result": training_result,
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/ml/ensemble-prediction/{symbol}")
+async def get_ensemble_prediction(symbol: str, db: Session = Depends(get_db)):
+    """Get ML ensemble prediction for a symbol"""
+    try:
+        # Get recent data
+        ohlcv_data = await kucoin_client.get_klines(symbol, "1hour", 100)
+        
+        if ohlcv_data.empty:
+            raise HTTPException(status_code=400, detail="No market data available")
+        
+        # Get ensemble prediction
+        prediction = ml_ensemble_predictor.predict_ensemble(ohlcv_data)
+        
+        return {
+            "status": "success",
+            "symbol": symbol,
+            "prediction": prediction,
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/database/trading-sessions")
+async def get_trading_sessions(db: Session = Depends(get_db)):
+    """Get all trading sessions"""
+    try:
+        sessions = db.query(TradingSession).order_by(TradingSession.start_time.desc()).limit(50).all()
+        
+        sessions_data = []
+        for session in sessions:
+            sessions_data.append({
+                "id": session.id,
+                "start_time": session.start_time,
+                "end_time": session.end_time,
+                "initial_balance": session.initial_balance,
+                "final_balance": session.final_balance,
+                "total_trades": session.total_trades,
+                "profitable_trades": session.profitable_trades,
+                "total_pnl": session.total_pnl,
+                "max_drawdown": session.max_drawdown,
+                "sharpe_ratio": session.sharpe_ratio,
+                "win_rate": session.win_rate,
+                "is_active": session.is_active
+            })
+        
+        return {
+            "status": "success",
+            "data": sessions_data,
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/database/signals")
+async def get_signal_records(limit: int = 100, db: Session = Depends(get_db)):
+    """Get recent signal records"""
+    try:
+        signals = db.query(SignalRecord).order_by(SignalRecord.timestamp.desc()).limit(limit).all()
+        
+        signals_data = []
+        for signal in signals:
+            signals_data.append({
+                "id": signal.id,
+                "symbol": signal.symbol,
+                "timestamp": signal.timestamp,
+                "action": signal.action,
+                "confidence": signal.confidence,
+                "final_score": signal.final_score,
+                "rsi_macd_score": signal.rsi_macd_score,
+                "smc_score": signal.smc_score,
+                "pattern_score": signal.pattern_score,
+                "sentiment_score": signal.sentiment_score,
+                "ml_score": signal.ml_score,
+                "price": signal.price,
+                "signal_strength": signal.signal_strength,
+                "executed": signal.executed
+            })
+        
+        return {
+            "status": "success",
+            "data": signals_data,
+            "count": len(signals_data),
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/database/trades")
+async def get_trade_records(limit: int = 100, db: Session = Depends(get_db)):
+    """Get recent trade records"""
+    try:
+        trades = db.query(TradeRecord).order_by(TradeRecord.entry_time.desc()).limit(limit).all()
+        
+        trades_data = []
+        for trade in trades:
+            trades_data.append({
+                "id": trade.id,
+                "symbol": trade.symbol,
+                "entry_time": trade.entry_time,
+                "exit_time": trade.exit_time,
+                "direction": trade.direction,
+                "entry_price": trade.entry_price,
+                "exit_price": trade.exit_price,
+                "quantity": trade.quantity,
+                "gross_pnl": trade.gross_pnl,
+                "net_pnl": trade.net_pnl,
+                "pnl_percentage": trade.pnl_percentage,
+                "status": trade.status,
+                "stop_loss_hit": trade.stop_loss_hit,
+                "take_profit_hit": trade.take_profit_hit
+            })
+        
+        return {
+            "status": "success",
+            "data": trades_data,
+            "count": len(trades_data),
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/database/create-session")
+async def create_trading_session(initial_balance: float = 10000.0, db: Session = Depends(get_db)):
+    """Create a new trading session"""
+    try:
+        # End any active sessions
+        active_sessions = db.query(TradingSession).filter(TradingSession.is_active == True).all()
+        for session in active_sessions:
+            session.is_active = False
+            session.end_time = datetime.now()
+        
+        # Create new session
+        new_session = TradingSession(
+            initial_balance=initial_balance,
+            start_time=datetime.now(),
+            is_active=True
+        )
+        
+        db.add(new_session)
+        db.commit()
+        db.refresh(new_session)
+        
+        return {
+            "status": "success",
+            "session_id": new_session.id,
+            "message": "New trading session created",
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/database/system-metrics")
+async def get_system_metrics(db: Session = Depends(get_db)):
+    """Get recent system metrics"""
+    try:
+        metrics = db.query(SystemMetrics).order_by(SystemMetrics.timestamp.desc()).limit(24).all()
+        
+        metrics_data = []
+        for metric in metrics:
+            metrics_data.append({
+                "timestamp": metric.timestamp,
+                "api_response_time": metric.api_response_time,
+                "websocket_connections": metric.websocket_connections,
+                "active_signals": metric.active_signals,
+                "memory_usage": metric.memory_usage,
+                "cpu_usage": metric.cpu_usage,
+                "signals_generated_today": metric.signals_generated_today,
+                "trades_executed_today": metric.trades_executed_today,
+                "daily_pnl": metric.daily_pnl,
+                "data_latency_ms": metric.data_latency_ms
+            })
+        
+        return {
+            "status": "success",
+            "data": metrics_data,
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/database/risk-limits")
+async def get_database_risk_limits(db: Session = Depends(get_db)):
+    """Get current risk limits from database"""
+    try:
+        risk_limits = db.query(RiskLimit).filter(RiskLimit.is_active == True).first()
+        
+        if not risk_limits:
+            raise HTTPException(status_code=404, detail="No active risk limits found")
+        
+        return {
+            "status": "success",
+            "data": {
+                "id": risk_limits.id,
+                "max_risk_per_trade": risk_limits.max_risk_per_trade,
+                "max_daily_loss": risk_limits.max_daily_loss,
+                "max_portfolio_var": risk_limits.max_portfolio_var,
+                "max_correlation_limit": risk_limits.max_correlation_limit,
+                "max_position_size": risk_limits.max_position_size,
+                "confidence_threshold": risk_limits.confidence_threshold,
+                "volatility_adjustment": risk_limits.volatility_adjustment,
+                "drawdown_protection": risk_limits.drawdown_protection,
+                "emergency_stop": risk_limits.emergency_stop,
+                "created_at": risk_limits.created_at,
+                "updated_at": risk_limits.updated_at
             },
             "timestamp": datetime.now()
         }
