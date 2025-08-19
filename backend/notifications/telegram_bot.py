@@ -160,16 +160,6 @@ class TelegramNotifier:
             print(f"Error sending daily summary: {str(e)}")
             return False
     
-    async def send_backtest_completion(self, backtest_results: Dict) -> bool:
-        """Send backtest completion notification"""
-        try:
-            message = self._format_backtest_message(backtest_results)
-            return await self._send_message(message, parse_mode='HTML')
-            
-        except Exception as e:
-            print(f"Error sending backtest notification: {str(e)}")
-            return False
-    
     def _format_signal_message(self, signal: Dict) -> str:
         """Format trading signal for Telegram"""
         action = signal.get('action', 'UNKNOWN')
@@ -341,34 +331,6 @@ class TelegramNotifier:
 <b>System Health:</b> {summary.get('system_health', 'Good')}
 
 🎯 <i>Keep trading smart with HTS!</i>
-        """.strip()
-        
-        return message
-    
-    def _format_backtest_message(self, results: Dict) -> str:
-        """Format backtest completion notification"""
-        symbol = results.get('symbol', 'UNKNOWN')
-        total_return_pct = results.get('total_return_pct', 0)
-        sharpe_ratio = results.get('sharpe_ratio', 0)
-        win_rate = results.get('win_rate', 0)
-        
-        perf_emoji = "🚀" if total_return_pct > 10 else "📈" if total_return_pct > 0 else "📉"
-        
-        message = f"""
-🧪 <b>BACKTEST COMPLETED</b> {perf_emoji}
-
-<b>Symbol:</b> {symbol}
-<b>Period:</b> {results.get('start_date')} to {results.get('end_date')}
-
-<b>Performance:</b>
-• Return: {total_return_pct:+.2f}%
-• Sharpe Ratio: {sharpe_ratio:.3f}
-• Win Rate: {win_rate:.1f}%
-• Total Trades: {results.get('total_trades', 0)}
-
-<b>Backtest ID:</b> <code>{results.get('backtest_id', '')}</code>
-
-⏰ <i>{datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}</i>
         """.strip()
         
         return message
