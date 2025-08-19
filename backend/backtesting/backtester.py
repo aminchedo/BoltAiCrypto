@@ -224,33 +224,26 @@ class BacktestEngine:
             except:
                 ml_score = 0
             
-            # Calculate final score (weighted average)
-            weights = {
-                'rsi_macd': 0.25,
-                'smc': 0.25,
-                'pattern': 0.20,
-                'sentiment': 0.10,
-                'ml': 0.20
-            }
-            
+            # Calculate final score (exact weights per spec)
             final_score = (
-                weights['rsi_macd'] * rsi_macd_score +
-                weights['smc'] * smc_score +
-                weights['pattern'] * pattern_score +
-                weights['sentiment'] * sentiment_score +
-                weights['ml'] * ml_score
+                0.40 * rsi_macd_score +
+                0.25 * smc_score +
+                0.20 * pattern_score +
+                0.10 * sentiment_score +
+                0.05 * ml_score
             )
-            
-            # Determine action based on final score
-            if final_score > 0.6:
+            final_score_pct = max(0.0, min(100.0, final_score * 100.0))
+
+            # Determine action based on threshold bands
+            if final_score_pct >= 60:
                 action = 'BUY'
-                confidence = min(final_score, 1.0)
-            elif final_score < -0.6:
+                confidence = min(1.0, final_score)
+            elif final_score_pct <= 25:
                 action = 'SELL'
-                confidence = min(abs(final_score), 1.0)
+                confidence = min(1.0, 1.0 - (final_score if final_score <= 1 else 1.0))
             else:
                 action = 'HOLD'
-                confidence = 0
+                confidence = 0.5
             
             if action == 'HOLD':
                 return None
