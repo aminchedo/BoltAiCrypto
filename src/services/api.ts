@@ -1,131 +1,43 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || (
-  process.env.NODE_ENV === 'production' 
-    ? 'https://your-backend-url.herokuapp.com' 
-    : 'http://localhost:8000'
-);
+// src/services/api.ts
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
-export class ApiService {
-  private getAuthHeaders(): HeadersInit {
-    const token = localStorage.getItem('auth_token');
-    return {
-      'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` })
-    };
-  }
-
-  async get(endpoint: string) {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      headers: this.getAuthHeaders()
-    });
-    if (!response.ok) {
-      if (response.status === 401) {
-        localStorage.removeItem('auth_token');
-        window.location.href = '/login';
-      }
-      throw new Error(`API Error: ${response.status}`);
-    }
-    return response.json();
-  }
-
-  async post(endpoint: string, data: any) {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-    
-    if (!response.ok) {
-      if (response.status === 401) {
-        localStorage.removeItem('auth_token');
-        window.location.href = '/login';
-      }
-      throw new Error(`API Error: ${response.status}`);
-    }
-    return response.json();
-  }
-
-  async login(username: string, password: string) {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ username, password }),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Login failed: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    localStorage.setItem('auth_token', data.access_token);
-    return data;
-  }
-
-  async getCurrentUser() {
-    return this.get('/auth/me');
-  }
-
-  logout() {
-    localStorage.removeItem('auth_token');
-    window.location.href = '/login';
-  }
-
-  async getPrice(symbol: string) {
-    return this.get(`/api/price/${symbol}`);
-  }
-
-  async generateSignal(symbol: string, interval: string = '1h') {
-    return this.post('/api/signals/generate', { symbol, interval });
-  }
-
-  async getLiveSignals() {
-    return this.get('/api/signals/live');
-  }
-
-  async getAnalysis(symbol: string) {
-    return this.get(`/api/analysis/${symbol}`);
-  }
-
-  async updateRiskSettings(settings: any) {
-    return this.post('/settings/risk', settings);
-  }
-
-  async getSettings() {
-    return this.get('/settings');
-  }
-
-  async getHealth() {
-    return this.get('/health');
-  }
-
-  async getKuCoinPrice(symbol: string) {
-    return this.get(`/api/kucoin/price/${symbol}`);
-  }
-
-  async getKuCoinOHLCV(symbol: string, interval: string = '1hour', limit: number = 100) {
-    return this.get(`/api/kucoin/ohlcv/${symbol}?interval=${interval}&limit=${limit}`);
-  }
-
-  async getKuCoinTicker(symbol: string) {
-    return this.get(`/api/kucoin/ticker/${symbol}`);
-  }
-
-  async getAllApisHealth() {
-    return this.get('/api/health/all-apis');
-  }
-
-  async getServiceHealth(serviceName: string) {
-    return this.get(`/api/health/${serviceName}`);
-  }
-
-  async forceApiFailover(service: string) {
-    return this.post(`/api/fallback/force/${service}`, {});
-  }
-
-  async getApiEndpoints() {
-    return this.get('/api/config/endpoints');
-  }
+function normalizeBaseUrl(url: string) {
+  if (!url) return '';
+  return url.endsWith('/') ? url.slice(0, -1) : url;
 }
 
-export const apiService = new ApiService();
+function getBaseUrl() {
+  const env = (import.meta as any).env?.VITE_API_URL as string | undefined;
+  if (env && env.trim()) return normalizeBaseUrl(env.trim());
+  const origin = window.location.origin;
+  return normalizeBaseUrl(origin);
+}
+
+async function request<T = unknown>(path: string, options: RequestInit = {}) {
+  const base = getBaseUrl();
+  const url = path.startsWith('/') ? base + path : base + '/' + path;
+  const res = await fetch(url, {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    ...options
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`HTTP ${res.status} ${res.statusText} - ${text}`);
+  }
+  const ct = res.headers.get('content-type') || '';
+  if (ct.includes('application/json')) return (await res.json()) as T;
+  return (await res.text()) as unknown as T;
+}
+
+export const api = {
+  get: <T = unknown>(path: string, init?: RequestInit) => request<T>(path, { method: 'GET', ...(init || {}) }),
+  post: <T = unknown>(path: string, body?: unknown, init?: RequestInit) =>
+    request<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined, ...(init || {}) }),
+  put: <T = unknown>(path: string, body?: unknown, init?: RequestInit) =>
+    request<T>(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined, ...(init || {}) }),
+  patch: <T = unknown>(path: string, body?: unknown, init?: RequestInit) =>
+    request<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined, ...(init || {}) }),
+  delete: <T = unknown>(path: string, init?: RequestInit) => request<T>(path, { method: 'DELETE', ...(init || {}) }),
+  baseUrl: getBaseUrl
+};

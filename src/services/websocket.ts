@@ -1,105 +1,31 @@
-import { WebSocketMessage } from '../types';
+// src/services/websocket.ts
+type Listener = (event: MessageEvent) => void;
 
-export class WebSocketService {
-  private ws: WebSocket | null = null;
-  private reconnectInterval: number = 5000;
-  private maxReconnectAttempts: number = 10;
-  private reconnectAttempts: number = 0;
-  private isManuallyDisconnected: boolean = false;
+function normalizeBase(url: string) {
+  return url.endsWith('/') ? url.slice(0, -1) : url;
+}
 
-  constructor(
-    private url: string,
-    private onMessage: (message: WebSocketMessage) => void,
-    private onConnect?: () => void,
-    private onDisconnect?: () => void
-  ) {}
+function resolveWsBase() {
+  const env = (import.meta as any).env?.VITE_WS_URL as string | undefined;
+  if (env && env.trim()) return normalizeBase(env.trim());
+  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${proto}//${window.location.host}`;
+}
 
-  connect() {
-    if (this.isManuallyDisconnected) {
-      return;
-    }
+export function connectWs(path: string, onMessage?: Listener, opts: { autoReconnect?: boolean; delayMs?: number } = {}) {
+  const base = resolveWsBase();
+  const url = path.startsWith('/') ? base + path : base + '/' + path;
+  const ws = new WebSocket(url);
 
-    try {
-      this.ws = new WebSocket(this.url);
-      
-      this.ws.onopen = () => {
-        console.log(`WebSocket connected to ${this.url}`);
-        this.reconnectAttempts = 0;
-        if (this.onConnect) {
-          this.onConnect();
-        }
-      };
+  const auto = opts.autoReconnect ?? true;
+  const delay = opts.delayMs ?? 1500;
 
-      this.ws.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data);
-          this.onMessage(message);
-        } catch (error) {
-          console.error('Failed to parse WebSocket message:', error);
-        }
-      };
+  if (onMessage) ws.addEventListener('message', onMessage);
 
-      this.ws.onclose = (event) => {
-        console.log(`WebSocket disconnected from ${this.url}`, event.code, event.reason);
-        if (this.onDisconnect) {
-          this.onDisconnect();
-        }
-        
-        if (!this.isManuallyDisconnected) {
-          this.handleReconnect();
-        }
-      };
-
-      this.ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
-
-    } catch (error) {
-      console.error('Failed to connect to WebSocket:', error);
-      this.handleReconnect();
-    }
+  if (auto) {
+    ws.addEventListener('close', () => {
+      setTimeout(() => connectWs(path, onMessage, opts), delay);
+    });
   }
-
-  private handleReconnect() {
-    if (this.isManuallyDisconnected) {
-      return;
-    }
-
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts}) in ${this.reconnectInterval}ms`);
-      
-      setTimeout(() => {
-        if (!this.isManuallyDisconnected) {
-          this.connect();
-        }
-      }, this.reconnectInterval);
-    } else {
-      console.error('Max reconnection attempts reached');
-    }
-  }
-
-  disconnect() {
-    this.isManuallyDisconnected = true;
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
-    }
-  }
-
-  send(message: any) {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(message));
-    } else {
-      console.warn('WebSocket is not connected, cannot send message');
-    }
-  }
-
-  isConnected(): boolean {
-    return this.ws?.readyState === WebSocket.OPEN;
-  }
-
-  getReadyState(): number {
-    return this.ws?.readyState ?? WebSocket.CLOSED;
-  }
+  return ws;
 }
