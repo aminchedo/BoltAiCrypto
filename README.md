@@ -1,8 +1,16 @@
 # HTS Trading System
 
+![CI](https://github.com/aminchedo/BoltAiCrypto/actions/workflows/ci.yml/badge.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+
 سیستم معاملاتی حرفه‌ای ارزهای دیجیتال | Professional Cryptocurrency Trading Platform
 
 A comprehensive TypeScript/React + FastAPI trading system with **RTL-first Persian interface**, advanced analytics, and multi-algorithm market scanning.
+
+## Dev URLs
+- Frontend: http://localhost:3030 (or http://localhost:5173)
+- Backend:  http://localhost:8000
+- WS:       ws://localhost:8000/ws/realtime
 
 ---
 

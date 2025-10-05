@@ -202,6 +202,16 @@ async def health_check():
         "data_source": "kucoin_primary"
     }
 
+@app.get("/api/health")
+async def health_check_api():
+    """Health check alias at /api/health for consistency"""
+    return {
+        "status": "healthy",
+        "path": "api/health",
+        "timestamp": datetime.now(),
+        "version": "1.0.0"
+    }
+
 # KuCoin Market Data Endpoints (Replace Binance)
 @app.get("/api/kucoin/price/{symbol}")
 async def get_kucoin_price(symbol: str):
