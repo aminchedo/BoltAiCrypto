@@ -114,10 +114,10 @@ const Scanner: React.FC = () => {
 
     try {
       if (state.symbols.length === 0) {
-        throw new Error('لطفاً حداقل یک نماد انتخاب کنید');
+        throw new Error('Please select at least one symbol');
       }
       if (state.timeframes.length === 0) {
-        throw new Error('لطفاً حداقل یک بازه زمانی انتخاب کنید');
+        throw new Error('Please select at least one timeframe');
       }
 
       const scanRequest = {
@@ -152,7 +152,7 @@ const Scanner: React.FC = () => {
       console.error('Scanner error:', err);
       setState(prev => ({
         ...prev,
-        error: err.message || 'خطا در اسکن بازار',
+        error: err.message || 'Market scan failed',
         results: [],
         isScanning: false,
       }));
@@ -335,7 +335,7 @@ const Scanner: React.FC = () => {
         e.preventDefault();
         if (!state.isScanning) handleScan(false);
       },
-      description: 'اجرای اسکن عمیق'
+      description: 'Run deep scan'
     },
     {
       key: 'q',
@@ -343,52 +343,52 @@ const Scanner: React.FC = () => {
       handler: () => {
         if (!state.isScanning) handleScan(true);
       },
-      description: 'اجرای اسکن سریع'
+      description: 'Run quick scan'
     },
     {
       key: '1',
       handler: () => handleViewModeChange('list'),
-      description: 'نمای لیست'
+      description: 'List view'
     },
     {
       key: '2',
       handler: () => handleViewModeChange('grid'),
-      description: 'نمای شبکه'
+      description: 'Grid view'
     },
     {
       key: '3',
       handler: () => handleViewModeChange('chart'),
-      description: 'نمای نمودار'
+      description: 'Chart view'
     },
     {
       key: '4',
       handler: () => handleViewModeChange('heatmap'),
-      description: 'نقشه حرارتی'
+      description: 'Heatmap view'
     },
     {
       key: 'f',
       handler: () => setState(prev => ({ ...prev, showAdvancedFilters: !prev.showAdvancedFilters })),
-      description: 'فیلترهای پیشرفته'
+      description: 'Advanced filters'
     },
     {
       key: 'b',
       handler: () => handleDirectionFilterChange('BULLISH'),
-      description: 'فقط صعودی'
+      description: 'Bullish only'
     },
     {
       key: 'n',
       handler: () => handleDirectionFilterChange('BEARISH'),
-      description: 'فقط نزولی'
+      description: 'Bearish only'
     },
     {
       key: 'r',
       handler: () => handleDirectionFilterChange('all'),
-      description: 'بازنشانی فیلتر جهت'
+      description: 'Reset direction filter'
     },
     {
       key: '?',
       handler: () => setShowShortcuts(true),
-      description: 'نمایش راهنمای میانبرها'
+      description: 'Show shortcuts'
     },
     {
       key: 'Escape',
@@ -396,7 +396,7 @@ const Scanner: React.FC = () => {
         if (showShortcuts) setShowShortcuts(false);
         else if (state.showComparison) handleToggleComparison();
       },
-      description: 'بستن مودال‌ها'
+      description: 'Close modals'
     }
   ], !showShortcuts && !state.showComparison);
 
@@ -407,18 +407,18 @@ const Scanner: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
-              🔍 اسکنر پیشرفته بازار
+              🔍 Advanced Market Scanner
               <button
                 onClick={() => setShowShortcuts(true)}
                 className="text-sm px-3 py-1 bg-purple-500/20 border border-purple-500/30 text-purple-300 rounded-lg hover:bg-purple-500/30 transition-colors flex items-center gap-1"
-                title="میانبرهای صفحه‌کلید"
+                title="Keyboard Shortcuts"
               >
                 <span>?</span>
-                <span className="hidden sm:inline">میانبرها</span>
+                <span className="hidden sm:inline">Shortcuts</span>
               </button>
             </h1>
             <p className="text-slate-400">
-              اسکن چند بازه زمانی با تحلیل ترکیبی ۹ الگوریتم حرفه‌ای
+              Multi-timeframe scan with 9 professional algorithms
             </p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
@@ -427,7 +427,7 @@ const Scanner: React.FC = () => {
               className="flex items-center gap-2 px-4 py-2 bg-slate-700/70 border border-slate-600 text-slate-300 rounded-lg hover:bg-slate-700 transition-colors font-medium"
             >
               <span>📜</span>
-              <span className="hidden sm:inline">تاریخچه</span>
+              <span className="hidden sm:inline">History</span>
             </button>
             <ExportMenu results={sortedResults} />
             <PresetDropdown 
@@ -502,7 +502,7 @@ const Scanner: React.FC = () => {
           />
           
           {/* Loading State */}
-          {state.isScanning && <Loading message="در حال تحلیل نمادها..." />}
+          {state.isScanning && <Loading message="Analyzing symbols..." />}
           
           {/* Error State */}
           {!state.isScanning && state.error && (
@@ -513,16 +513,16 @@ const Scanner: React.FC = () => {
           {!state.isScanning && !state.error && !state.hasScanned && (
             <Empty 
               icon="📊"
-              title="آماده برای اسکن"
-              description="نمادها و بازه‌های زمانی را انتخاب کنید و دکمه اسکن را بزنید"
+              title="Ready to Scan"
+              description="Select symbols and timeframes, then hit the scan button"
             />
           )}
           
           {!state.isScanning && !state.error && state.hasScanned && sortedResults.length === 0 && (
             <Empty 
               icon="🔍"
-              title="نتیجه‌ای یافت نشد"
-              description="با معیارهای انتخاب شده، فرصتی شناسایی نشد. فیلترها را تغییر دهید یا نمادهای بیشتری امتحان کنید"
+              title="No Results Found"
+              description="No opportunities found with current criteria. Try adjusting filters or adding more symbols"
             />
           )}
           

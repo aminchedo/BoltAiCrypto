@@ -7,7 +7,7 @@ interface LoadingProps {
 }
 
 export const Loading: React.FC<LoadingProps> = ({ 
-  message = 'در حال بارگذاری...', 
+  message = 'Loading...', 
   size = 'md' 
 }) => {
   const sizeClasses = {

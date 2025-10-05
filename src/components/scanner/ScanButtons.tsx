@@ -11,10 +11,10 @@ interface ScanButtonsProps {
 }
 
 const REFRESH_OPTIONS = [
-  { value: 60, label: '۱ دقیقه' },
-  { value: 300, label: '۵ دقیقه' },
-  { value: 900, label: '۱۵ دقیقه' },
-  { value: 1800, label: '۳۰ دقیقه' },
+  { value: 60, label: '1 minute' },
+  { value: 300, label: '5 minutes' },
+  { value: 900, label: '15 minutes' },
+  { value: 1800, label: '30 minutes' },
 ];
 
 const ScanButtons: React.FC<ScanButtonsProps> = ({
@@ -68,7 +68,7 @@ const ScanButtons: React.FC<ScanButtonsProps> = ({
         `}
       >
         <Search className={`w-6 h-6 ${isScanning ? 'animate-spin' : ''}`} />
-        <span>{isScanning ? 'در حال اسکن عمیق...' : '🔍 اسکن عمیق'}</span>
+        <span>{isScanning ? 'Deep scanning...' : '🔍 Deep Scan'}</span>
       </button>
       
       {/* Quick Scan Button (Secondary) */}
@@ -86,7 +86,7 @@ const ScanButtons: React.FC<ScanButtonsProps> = ({
         `}
       >
         <Zap className="w-5 h-5" />
-        <span>⚡ اسکن سریع</span>
+        <span>⚡ Quick Scan</span>
       </button>
       
       {/* Auto-Refresh Toggle */}
@@ -104,11 +104,11 @@ const ScanButtons: React.FC<ScanButtonsProps> = ({
         >
           <RefreshCw className={`w-5 h-5 ${autoRefresh ? 'animate-spin' : ''}`} />
           <div className="flex flex-col items-start">
-            <span className="text-xs opacity-70">تازه‌سازی خودکار</span>
+            <span className="text-xs opacity-70">Auto Refresh</span>
             {autoRefresh ? (
               <span className="text-sm font-mono">{formatTime(countdown)}</span>
             ) : (
-              <span className="text-sm">خاموش</span>
+              <span className="text-sm">Off</span>
             )}
           </div>
         </button>
@@ -123,7 +123,7 @@ const ScanButtons: React.FC<ScanButtonsProps> = ({
               }}
               className="w-full px-4 py-3 text-right hover:bg-slate-700/50 text-slate-300 transition-colors border-b border-slate-700"
             >
-              ❌ خاموش
+              ❌ Off
             </button>
             {REFRESH_OPTIONS.map((option) => (
               <button

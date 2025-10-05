@@ -9,33 +9,33 @@ interface Shortcut {
 
 const SHORTCUTS: Shortcut[] = [
   // Navigation
-  { keys: ['↑', '↓'], description: 'پیمایش بین نتایج', category: 'پیمایش' },
-  { keys: ['Enter'], description: 'باز کردن جزئیات نماد', category: 'پیمایش' },
-  { keys: ['Space'], description: 'انتخاب/عدم انتخاب نماد', category: 'پیمایش' },
-  { keys: ['Esc'], description: 'پاک کردن فیلترها / بستن مودال', category: 'پیمایش' },
-  { keys: ['Tab'], description: 'جابجایی بین کنترل‌ها', category: 'پیمایش' },
+  { keys: ['↑', '↓'], description: 'Navigate between results', category: 'Navigation' },
+  { keys: ['Enter'], description: 'Open symbol details', category: 'Navigation' },
+  { keys: ['Space'], description: 'Select/deselect symbol', category: 'Navigation' },
+  { keys: ['Esc'], description: 'Clear filters / close modal', category: 'Navigation' },
+  { keys: ['Tab'], description: 'Switch between controls', category: 'Navigation' },
   
   // Actions
-  { keys: ['Ctrl', 'S'], description: 'اجرای اسکن عمیق', category: 'عملیات' },
-  { keys: ['Ctrl', 'Q'], description: 'اجرای اسکن سریع', category: 'عملیات' },
-  { keys: ['Ctrl', 'E'], description: 'خروجی گرفتن از نتایج', category: 'عملیات' },
-  { keys: ['Ctrl', 'F'], description: 'فوکوس روی جستجو', category: 'عملیات' },
-  { keys: ['Ctrl', 'A'], description: 'انتخاب همه نتایج', category: 'عملیات' },
-  { keys: ['Ctrl', 'D'], description: 'حذف انتخاب همه', category: 'عملیات' },
+  { keys: ['Ctrl', 'S'], description: 'Run deep scan', category: 'Actions' },
+  { keys: ['Ctrl', 'Q'], description: 'Run quick scan', category: 'Actions' },
+  { keys: ['Ctrl', 'E'], description: 'Export results', category: 'Actions' },
+  { keys: ['Ctrl', 'F'], description: 'Focus on search', category: 'Actions' },
+  { keys: ['Ctrl', 'A'], description: 'Select all results', category: 'Actions' },
+  { keys: ['Ctrl', 'D'], description: 'Deselect all', category: 'Actions' },
   
   // View Modes
-  { keys: ['1'], description: 'نمای لیست', category: 'نماها' },
-  { keys: ['2'], description: 'نمای شبکه', category: 'نماها' },
-  { keys: ['3'], description: 'نمای نمودار', category: 'نماها' },
+  { keys: ['1'], description: 'List view', category: 'Views' },
+  { keys: ['2'], description: 'Grid view', category: 'Views' },
+  { keys: ['3'], description: 'Chart view', category: 'Views' },
   
   // Filters
-  { keys: ['F'], description: 'باز کردن فیلترهای پیشرفته', category: 'فیلترها' },
-  { keys: ['B'], description: 'فقط نمادهای صعودی', category: 'فیلترها' },
-  { keys: ['N'], description: 'فقط نمادهای نزولی', category: 'فیلترها' },
-  { keys: ['R'], description: 'بازنشانی فیلترها', category: 'فیلترها' },
+  { keys: ['F'], description: 'Open advanced filters', category: 'Filters' },
+  { keys: ['B'], description: 'Bullish symbols only', category: 'Filters' },
+  { keys: ['N'], description: 'Bearish symbols only', category: 'Filters' },
+  { keys: ['R'], description: 'Reset filters', category: 'Filters' },
   
   // Help
-  { keys: ['?'], description: 'نمایش این راهنما', category: 'راهنما' },
+  { keys: ['?'], description: 'Show this help', category: 'Help' },
 ];
 
 interface KeyboardShortcutsPanelProps {
@@ -64,16 +64,16 @@ const KeyboardShortcutsPanel: React.FC<KeyboardShortcutsPanelProps> = ({ isOpen,
               <Keyboard className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-white">میانبرهای صفحه‌کلید</h2>
+              <h2 className="text-2xl font-bold text-white">Keyboard Shortcuts</h2>
               <p className="text-sm text-slate-400 mt-1">
-                برای افزایش سرعت کار با اسکنر از این میانبرها استفاده کنید
+                Use these shortcuts to boost your scanning efficiency
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
             className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
-            aria-label="بستن"
+            aria-label="Close"
           >
             <X className="w-6 h-6 text-slate-400" />
           </button>
@@ -117,13 +117,13 @@ const KeyboardShortcutsPanel: React.FC<KeyboardShortcutsPanelProps> = ({ isOpen,
           {/* Tips */}
           <div className="mt-6 p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-xl">
             <h4 className="font-semibold text-purple-300 mb-2 flex items-center gap-2">
-              💡 نکات
+              💡 Tips
             </h4>
             <ul className="space-y-1 text-sm text-slate-300">
-              <li>• برای استفاده از میانبرها، ابتدا مطمئن شوید فوکوس روی صفحه است</li>
-              <li>• در نمای لیست، می‌توانید با فلش‌ها بین نتایج حرکت کنید</li>
-              <li>• برای انتخاب چند نماد، Space را روی هر کدام بزنید</li>
-              <li>• Ctrl+S مانند کلیک روی دکمه "اسکن عمیق" عمل می‌کند</li>
+              <li>• Make sure the page has focus before using shortcuts</li>
+              <li>• In list view, use arrow keys to navigate between results</li>
+              <li>• To select multiple symbols, press Space on each one</li>
+              <li>• Ctrl+S works like clicking the "Deep Scan" button</li>
             </ul>
           </div>
         </div>
@@ -131,13 +131,13 @@ const KeyboardShortcutsPanel: React.FC<KeyboardShortcutsPanelProps> = ({ isOpen,
         {/* Footer */}
         <div className="p-4 border-t border-slate-700 flex items-center justify-between bg-slate-900/50">
           <div className="text-xs text-slate-400">
-            برای چاپ این راهنما: <kbd className="px-2 py-1 bg-slate-700 rounded text-white">Ctrl+P</kbd>
+            To print this guide: <kbd className="px-2 py-1 bg-slate-700 rounded text-white">Ctrl+P</kbd>
           </div>
           <button
             onClick={onClose}
             className="px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg font-medium hover:from-cyan-600 hover:to-blue-700 transition-all"
           >
-            فهمیدم!
+            Got it!
           </button>
         </div>
       </div>

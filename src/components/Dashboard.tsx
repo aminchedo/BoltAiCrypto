@@ -206,8 +206,8 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
                   <Zap className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-white">سیستم معاملاتی HTS</h1>
-                  <p className="text-xs text-slate-400">استراتژی ترکیبی معاملاتی v1.0</p>
+                  <h1 className="text-2xl font-bold text-white">HTS Trading System</h1>
+                  <p className="text-xs text-slate-400">Hybrid Trading Strategy v1.0</p>
                 </div>
               </div>
               
@@ -240,7 +240,7 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
                 ) : (
                   <Activity className="w-4 h-4" />
                 )}
-                <span>{isLoading ? 'در حال تحلیل...' : 'تولید سیگنال'}</span>
+                <span>{isLoading ? 'Analyzing...' : 'Generate Signal'}</span>
               </button>
             </div>
           </div>
@@ -253,16 +253,16 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
         <div className="mb-6">
           <div className="flex space-x-1 bg-gray-800/30 backdrop-blur-lg rounded-xl p-1 border border-gray-700/50 overflow-x-auto">
             {[
-              { id: 'scanner2', label: '🔍 اسکنر جامع', icon: Search },
-              { id: 'scanner', label: 'اسکنر ساده', icon: Search },
-              { id: 'strategy', label: 'سازنده استراتژی', icon: Sliders },
-              { id: 'signals', label: 'سیگنال‌ها', icon: TrendingUp },
-              { id: 'portfolio', label: 'پرتفوی', icon: PieChart },
-              { id: 'pnl', label: 'تحلیل P&L', icon: DollarSign },
-              { id: 'backtest', label: 'بک‌تست', icon: TestTube },
-              { id: 'analytics', label: 'تحلیل پیشرفته', icon: Brain },
-              { id: 'notifications', label: 'اعلان‌ها', icon: MessageSquare },
-              { id: 'apis', label: 'وضعیت API', icon: Activity }
+              { id: 'scanner2', label: '🔍 Comprehensive Scanner', icon: Search },
+              { id: 'scanner', label: 'Simple Scanner', icon: Search },
+              { id: 'strategy', label: 'Strategy Builder', icon: Sliders },
+              { id: 'signals', label: 'Signals', icon: TrendingUp },
+              { id: 'portfolio', label: 'Portfolio', icon: PieChart },
+              { id: 'pnl', label: 'P&L Analysis', icon: DollarSign },
+              { id: 'backtest', label: 'Backtest', icon: TestTube },
+              { id: 'analytics', label: 'Advanced Analytics', icon: Brain },
+              { id: 'notifications', label: 'Notifications', icon: MessageSquare },
+              { id: 'apis', label: 'API Status', icon: Activity }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -472,8 +472,8 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
             <div className="col-span-12">
               <div className="bg-gray-800/30 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
                 <div className="text-center text-gray-400 py-12">
-                  <p className="text-lg">تحلیل پیشرفته موقتاً غیرفعال است</p>
-                  <p className="text-sm mt-2">در حال حاضر این بخش در دسترس نیست</p>
+                  <p className="text-lg">Advanced Analytics Temporarily Disabled</p>
+                  <p className="text-sm mt-2">This section is currently unavailable</p>
                 </div>
               </div>
             </div>
