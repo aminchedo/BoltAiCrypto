@@ -13,8 +13,8 @@ import { Activity, Wifi, WifiOff, RefreshCw, BarChart3, Zap, TrendingUp, PieChar
 import clsx from 'clsx';
 
 interface DashboardProps {
-  user: any;
-  onLogout: () => void;
+  user?: any;
+  onLogout?: () => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
