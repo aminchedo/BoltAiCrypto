@@ -32,6 +32,15 @@ from analytics.advanced_smc import advanced_smc_analyzer
 from analytics.ml_ensemble import ml_ensemble_predictor
 from analytics.multi_timeframe import mtf_analyzer, analyze_symbol_mtf
 
+# Import Phase 7, 8, 9 components
+from api.routes import router as enhanced_router
+from api.models import WeightConfig
+from scoring.engine import DynamicScoringEngine
+from scoring.scanner import MultiTimeframeScanner
+from backtesting.engine import BacktestEngine
+from websocket.manager import manager as ws_manager
+from websocket.live_scanner import initialize_live_scanner
+
 # Import database components
 from database.connection import get_db, init_db
 from database.models import TradingSession, SignalRecord, TradeRecord, SystemMetrics, RiskLimit
@@ -50,6 +59,43 @@ security = HTTPBearer()
 async def startup_event():
     init_db()
     app_logger.log_system_event("startup", "HTS Trading System started")
+    
+    # Initialize Phase 7, 8, 9 components
+    try:
+        # Initialize detectors and scoring engine
+        from detectors.harmonic import HarmonicDetector
+        from detectors.elliott import ElliottWaveDetector
+        from detectors.smc import SMCDetector
+        from detectors.fibonacci import FibonacciDetector
+        from detectors.price_action import PriceActionDetector
+        from detectors.sar import SARDetector
+        from detectors.sentiment import SentimentDetector
+        from detectors.news import NewsDetector
+        from detectors.whales import WhaleDetector
+        
+        detectors = {
+            "harmonic": HarmonicDetector(),
+            "elliott": ElliottWaveDetector(),
+            "smc": SMCDetector(),
+            "fibonacci": FibonacciDetector(),
+            "price_action": PriceActionDetector(),
+            "sar": SARDetector(),
+            "sentiment": SentimentDetector(),
+            "news": NewsDetector(),
+            "whales": WhaleDetector()
+        }
+        
+        default_weights = WeightConfig()
+        scoring_engine = DynamicScoringEngine(detectors, default_weights)
+        scanner = MultiTimeframeScanner(data_manager, scoring_engine, default_weights)
+        
+        # Initialize live scanner
+        await initialize_live_scanner(scoring_engine, scanner)
+        
+        app_logger.log_system_event("startup", "Enhanced trading system components initialized")
+        
+    except Exception as e:
+        app_logger.log_system_event("startup_error", f"Failed to initialize enhanced components: {e}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -1766,8 +1812,11 @@ async def shutdown_event():
     except Exception as e:
         logger.error(f"Error stopping analytics services: {e}")
 
+# Include enhanced API routes
+app.include_router(enhanced_router)
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
-    print(f"Starting HTS Trading System Backend with Analytics on port {port}...")
+    print(f"Starting HTS Trading System Backend with Enhanced Phases 7, 8, 9 on port {port}...")
     uvicorn.run(app, host="0.0.0.0", port=port, reload=False)

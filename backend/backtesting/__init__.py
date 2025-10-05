@@ -1,1 +1,1 @@
-# Backtesting module for HTS Trading System
+# Backtesting package for historical strategy validation

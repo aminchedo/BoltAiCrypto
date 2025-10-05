@@ -1,0 +1,1 @@
+# Detectors package for pattern and signal detection
