@@ -38,9 +38,20 @@ from database.models import TradingSession, SignalRecord, TradeRecord, SystemMet
 from sqlalchemy.orm import Session
 from fastapi import Depends
 
+# Import security middleware
+from middleware import SecurityHeadersMiddleware, RateLimitMiddleware
+
 import os
 
-app = FastAPI(title="HTS Trading System", version="1.0.0")
+# Public Mode Configuration
+# WARNING: Only enable in local/dev environments. Never expose to public internet.
+PUBLIC_MODE = os.getenv("PUBLIC_MODE", "false").lower() == "true"
+
+app = FastAPI(
+    title="HTS Trading System", 
+    version="1.0.0",
+    description=f"{'⚠️ PUBLIC MODE - NO AUTHENTICATION' if PUBLIC_MODE else 'Authenticated Trading System'}"
+)
 
 # Initialize security
 security = HTTPBearer()
@@ -49,23 +60,38 @@ security = HTTPBearer()
 @app.on_event("startup")
 async def startup_event():
     init_db()
-    app_logger.log_system_event("startup", "HTS Trading System started")
+    mode = "PUBLIC (NO AUTH)" if PUBLIC_MODE else "AUTHENTICATED"
+    app_logger.log_system_event("startup", f"HTS Trading System started in {mode} mode")
+    if PUBLIC_MODE:
+        app_logger.log_system_event("security_warning", "⚠️ PUBLIC_MODE enabled - authentication disabled!")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+# CORS Configuration
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",")
+# Add default dev origins if not in production
+if PUBLIC_MODE or os.getenv("ENVIRONMENT") != "production":
+    CORS_ORIGINS.extend([
         "http://localhost:3000", 
         "http://localhost:3001", 
         "http://127.0.0.1:3000", 
         "http://localhost:5173", 
-        "http://127.0.0.1:5173",
-        "https://*.vercel.app",
-        "https://your-frontend-domain.vercel.app"  # Replace with your actual Vercel domain
-    ],
+        "http://127.0.0.1:5173"
+    ])
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=list(set(CORS_ORIGINS)),  # Remove duplicates
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add security headers middleware
+app.add_middleware(SecurityHeadersMiddleware)
+
+# Add rate limiting middleware (100 requests per minute in dev, adjust for production)
+rate_limit_calls = int(os.getenv("RATE_LIMIT_CALLS", "100"))
+rate_limit_period = int(os.getenv("RATE_LIMIT_PERIOD", "60"))
+app.add_middleware(RateLimitMiddleware, calls=rate_limit_calls, period=rate_limit_period)
 
 # WebSocket connection manager
 class ConnectionManager:
