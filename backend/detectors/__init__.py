@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 """
 Advanced Pattern Detectors for AI Smart HTS Trading System
 Phase 3: Advanced Pattern Detectors
@@ -24,3 +25,6 @@ __all__ = [
     'OrderBlock',
     'FVG'
 ]
+=======
+# Detectors package for pattern and signal detection
+>>>>>>> cursor/implement-and-enhance-trading-system-phases-54b6
