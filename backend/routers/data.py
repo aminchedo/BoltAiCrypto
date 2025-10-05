@@ -1,8 +1,8 @@
 import asyncio
 from fastapi import APIRouter, Query
 from typing import Dict, Any
-from core.cache import cache
-from services import market, sentiment, news, whales, defi
+from backend.core.cache import cache
+from backend.services import market, sentiment, news, whales, defi
 
 router = APIRouter(prefix="/api", tags=["api"])
 

@@ -11,6 +11,8 @@ node_modules
 dist
 dist-ssr
 *.local
+.next
+coverage
 
 # Editor directories and files
 .vscode/*
@@ -28,10 +30,13 @@ dist-ssr
 .env.local
 backend/.env
 
-# Python cache
-__pycache__
+# Python
+__pycache__/
 *.pyc
 *.pyo
+.venv
+venv/
+*.egg-info
 
 # Backups
 *.backup
