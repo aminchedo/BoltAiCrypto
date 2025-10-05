@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import SignalCard from './SignalCard';
 import TradingChart from './TradingChart';
 import RiskPanel from './RiskPanel';
@@ -7,6 +7,8 @@ import BacktestPanel from './BacktestPanel';
 import PnLDashboard from './PnLDashboard';
 // import PredictiveAnalyticsDashboard from './PredictiveAnalyticsDashboard'; // Temporarily disabled - missing framer-motion dependency
 import WSBadge from './WSBadge';
+import AgentToggle from './header/AgentToggle';
+import WSStatusBadge from './header/WSStatusBadge';
 import MarketScanner from './MarketScanner';
 import Scanner from '../pages/Scanner';
 import SignalDetails from './SignalDetails';
@@ -15,6 +17,7 @@ import { TradingSignal, MarketData, OHLCVData } from '../types';
 import { tradingEngine } from '../services/tradingEngine';
 import { binanceApi } from '../services/binanceApi';
 import { api } from '../services/api';
+import { WebSocketManager } from '../services/websocket';
 import { Activity, RefreshCw, Zap, TrendingUp, PieChart, DollarSign, TestTube, MessageSquare, Brain, Search, Sliders } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -37,6 +40,44 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [selectedSymbolForDetails, setSelectedSymbolForDetails] = useState<string | null>(null);
 
   const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'SOLUSDT', 'XRPUSDT'];
+
+  // Create WebSocket manager instance
+  const wsManager = useMemo(() => new WebSocketManager('/ws/realtime', true), []);
+
+  // WebSocket message handling
+  useEffect(() => {
+    const unsubscribe = wsManager.onMessage((event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('WebSocket message received:', data);
+        
+        // Handle different message types
+        if (data.type === 'signal') {
+          // Update signals with real-time data
+          setSignals(prev => {
+            const exists = prev.find(s => s.symbol === data.symbol);
+            if (exists) {
+              return prev.map(s => s.symbol === data.symbol ? { ...s, ...data.signal } : s);
+            }
+            return [...prev, data.signal];
+          });
+        } else if (data.type === 'price_update') {
+          // Update market data with latest prices
+          setMarketData(prev => {
+            const exists = prev.find(m => m.symbol === data.symbol);
+            if (exists) {
+              return prev.map(m => m.symbol === data.symbol ? { ...m, ...data.data } : m);
+            }
+            return [...prev, data.data];
+          });
+        }
+      } catch (error) {
+        console.error('Failed to parse WebSocket message:', error);
+      }
+    });
+
+    return unsubscribe;
+  }, [wsManager]);
 
   // Real-time updates using polling
   useEffect(() => {
@@ -210,12 +251,13 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
                   <p className="text-xs text-slate-400">استراتژی ترکیبی معاملاتی v1.0</p>
                 </div>
               </div>
-              
-              {/* WebSocket Status Badge */}
-              <WSBadge />
             </div>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              {/* Real-Time Agent Controls */}
+              <AgentToggle wsManager={wsManager} watchlistSymbols={symbols} />
+              <WSStatusBadge wsManager={wsManager} />
+              
               <select
                 value={selectedSymbol}
                 onChange={(e) => setSelectedSymbol(e.target.value)}
