@@ -11,31 +11,31 @@ interface QuickFilter {
 const QUICK_FILTERS: QuickFilter[] = [
   {
     id: 'popular',
-    label: 'محبوب',
+    label: 'Popular',
     icon: TrendingUp,
     symbols: ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'ADAUSDT'],
   },
   {
     id: 'defi',
-    label: 'دیفای',
+    label: 'DeFi',
     icon: Layers,
     symbols: ['UNIUSDT', 'AAVEUSDT', 'LINKUSDT', 'MKRUSDT', 'SUSHIUSDT'],
   },
   {
     id: 'layer1',
-    label: 'لایه ۱',
+    label: 'Layer 1',
     icon: Globe,
     symbols: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'AVAXUSDT', 'DOTUSDT'],
   },
   {
     id: 'top10',
-    label: 'ده برتر',
+    label: 'Top 10',
     icon: Star,
     symbols: ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT', 'DOGEUSDT', 'TRXUSDT', 'MATICUSDT', 'LTCUSDT'],
   },
   {
     id: 'stablecoins',
-    label: 'استیبل‌کوین',
+    label: 'Stablecoins',
     icon: DollarSign,
     symbols: ['BUSDUSDT', 'USDCUSDT', 'DAIUSDT'],
   },
@@ -56,7 +56,7 @@ const QuickFilters: React.FC<QuickFiltersProps> = ({ onSelectGroup }) => {
   return (
     <div className="space-y-3">
       <label className="block text-sm font-semibold text-slate-300">
-        🎯 فیلترهای سریع
+        🎯 Quick Filters
       </label>
       <div className="flex flex-wrap gap-2">
         {QUICK_FILTERS.map((filter) => {

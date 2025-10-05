@@ -36,24 +36,24 @@ const ResultsHeader: React.FC<ResultsHeaderProps> = ({
   showComparison,
 }) => {
   const viewModes: { mode: ViewMode; icon: React.ComponentType<{ className?: string }>; label: string }[] = [
-    { mode: 'list', icon: List, label: 'لیست' },
-    { mode: 'grid', icon: Grid3x3, label: 'شبکه' },
-    { mode: 'chart', icon: LineChart, label: 'نمودار' },
-    { mode: 'heatmap', icon: Filter, label: 'نقشه' },
+    { mode: 'list', icon: List, label: 'List' },
+    { mode: 'grid', icon: Grid3x3, label: 'Grid' },
+    { mode: 'chart', icon: LineChart, label: 'Chart' },
+    { mode: 'heatmap', icon: Filter, label: 'Heatmap' },
   ];
 
   const sortFields: { field: SortField; label: string }[] = [
-    { field: 'score', label: 'امتیاز' },
-    { field: 'symbol', label: 'نماد' },
-    { field: 'change', label: 'تغییر ۲۴ ساعت' },
-    { field: 'volume', label: 'حجم' },
+    { field: 'score', label: 'Score' },
+    { field: 'symbol', label: 'Symbol' },
+    { field: 'change', label: '24h Change' },
+    { field: 'volume', label: 'Volume' },
   ];
 
   const directionFilters: { filter: DirectionFilter; label: string; color: string }[] = [
-    { filter: 'all', label: 'همه', color: 'slate' },
-    { filter: 'BULLISH', label: 'صعودی', color: 'emerald' },
-    { filter: 'BEARISH', label: 'نزولی', color: 'red' },
-    { filter: 'NEUTRAL', label: 'خنثی', color: 'slate' },
+    { filter: 'all', label: 'All', color: 'slate' },
+    { filter: 'BULLISH', label: 'Bullish', color: 'emerald' },
+    { filter: 'BEARISH', label: 'Bearish', color: 'red' },
+    { filter: 'NEUTRAL', label: 'Neutral', color: 'slate' },
   ];
 
   return (
@@ -63,7 +63,7 @@ const ResultsHeader: React.FC<ResultsHeaderProps> = ({
         <div className="flex items-center gap-3">
           <div className="w-2 h-2 rounded-full bg-gradient-to-r from-emerald-500 to-green-400 animate-pulse"></div>
           <h3 className="text-lg font-bold text-white">
-            {resultsCount} فرصت پیدا شد
+            {resultsCount} result(s) found
           </h3>
           {scanTime && (
             <span className="text-xs text-slate-400">
@@ -104,7 +104,7 @@ const ResultsHeader: React.FC<ResultsHeaderProps> = ({
             onChange={(e) => onSortChange(e.target.value as SortField)}
             className="flex-1 md:w-auto px-3 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white text-sm focus:border-cyan-500/50 focus:outline-none"
           >
-            <option value="" disabled>مرتب‌سازی بر اساس</option>
+            <option value="" disabled>Sort by</option>
             {sortFields.map(({ field, label }) => (
               <option key={field} value={field}>{label}</option>
             ))}
@@ -132,7 +132,7 @@ const ResultsHeader: React.FC<ResultsHeaderProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="جستجوی نماد..."
+            placeholder="Search symbols..."
             className="w-full px-4 py-2 pr-10 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white placeholder-slate-400 text-sm focus:border-cyan-500/50 focus:outline-none"
           />
           {searchQuery && (
@@ -158,7 +158,7 @@ const ResultsHeader: React.FC<ResultsHeaderProps> = ({
             `}
           >
             <GitCompare className="w-4 h-4" />
-            <span>مقایسه ({selectedCount})</span>
+            <span>Compare ({selectedCount})</span>
           </button>
         )}
       </div>

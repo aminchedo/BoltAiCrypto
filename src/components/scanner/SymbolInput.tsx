@@ -54,7 +54,7 @@ const SymbolInput: React.FC<SymbolInputProps> = ({ symbols, onChange, disabled }
   return (
     <div className="space-y-3">
       <label className="block text-sm font-semibold text-slate-300">
-        📊 نمادها ({symbols.length} انتخاب شده)
+        📊 Symbols ({symbols.length} selected)
       </label>
       
       {/* Selected Symbols */}
@@ -70,7 +70,7 @@ const SymbolInput: React.FC<SymbolInputProps> = ({ symbols, onChange, disabled }
                 onClick={() => handleRemoveSymbol(symbol)}
                 disabled={disabled}
                 className="p-0.5 hover:bg-red-500/20 rounded transition-colors disabled:opacity-50"
-                aria-label={`حذف ${symbol}`}
+                aria-label={`Remove ${symbol}`}
               >
                 <X className="w-3 h-3" />
               </button>
@@ -90,7 +90,7 @@ const SymbolInput: React.FC<SymbolInputProps> = ({ symbols, onChange, disabled }
             onKeyDown={handleKeyDown}
             onFocus={() => inputValue && setShowSuggestions(true)}
             onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-            placeholder="نماد را تایپ کنید (مثال: BTCUSDT)"
+            placeholder="Type symbol (e.g., BTCUSDT)"
             disabled={disabled}
             className="w-full px-4 py-3 pr-10 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white placeholder-slate-400 focus:border-cyan-500/50 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
           />
@@ -101,7 +101,7 @@ const SymbolInput: React.FC<SymbolInputProps> = ({ symbols, onChange, disabled }
                 setShowSuggestions(false);
               }}
               className="absolute left-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-600/50 rounded transition-colors"
-              aria-label="پاک کردن"
+              aria-label="Clear"
             >
               <X className="w-4 h-4 text-slate-400" />
             </button>
@@ -112,7 +112,7 @@ const SymbolInput: React.FC<SymbolInputProps> = ({ symbols, onChange, disabled }
         {showSuggestions && suggestions.length > 0 && (
           <div className="absolute z-10 mt-2 w-full bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden">
             <div className="p-2 text-xs text-slate-400 border-b border-slate-700">
-              پیشنهادات:
+              Suggestions:
             </div>
             {suggestions.map((symbol) => (
               <button
@@ -130,7 +130,7 @@ const SymbolInput: React.FC<SymbolInputProps> = ({ symbols, onChange, disabled }
       
       {/* Helper Text */}
       <p className="text-xs text-slate-400">
-        💡 نماد را تایپ کنید و Enter بزنید. حداقل ۱ نماد لازم است.
+        💡 Type a symbol and press Enter. At least 1 symbol required.
       </p>
     </div>
   );

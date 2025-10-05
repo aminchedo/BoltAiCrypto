@@ -60,7 +60,7 @@ const PresetDropdown: React.FC<PresetDropdownProps> = ({ symbols, timeframes, on
   };
 
   const handleDeletePreset = (id: string) => {
-    if (confirm('آیا مطمئن هستید که می‌خواهید این پیش‌تنظیم را حذف کنید؟')) {
+    if (confirm('Are you sure you want to delete this preset?')) {
       savePresetsToStorage(presets.filter(p => p.id !== id));
     }
   };
@@ -94,7 +94,7 @@ const PresetDropdown: React.FC<PresetDropdownProps> = ({ symbols, timeframes, on
           savePresetsToStorage([...presets, ...imported]);
         }
       } catch (error) {
-        alert('فایل نامعتبر است');
+        alert('Invalid file');
       }
     };
     reader.readAsText(file);
@@ -108,7 +108,7 @@ const PresetDropdown: React.FC<PresetDropdownProps> = ({ symbols, timeframes, on
           className="flex items-center gap-2 px-4 py-2 bg-slate-700/70 border border-slate-600 text-slate-300 rounded-lg hover:bg-slate-700 transition-colors font-medium"
         >
           <FolderOpen className="w-4 h-4" />
-          <span>پیش‌تنظیم‌ها</span>
+          <span>Presets</span>
         </button>
 
         {showMenu && (
@@ -122,7 +122,7 @@ const PresetDropdown: React.FC<PresetDropdownProps> = ({ symbols, timeframes, on
               className="w-full px-4 py-3 text-right hover:bg-slate-700/50 text-slate-300 transition-colors border-b border-slate-700 flex items-center gap-2"
             >
               <Save className="w-4 h-4 text-cyan-400" />
-              <span>ذخیره تنظیمات فعلی...</span>
+              <span>Save Current Settings...</span>
             </button>
 
             {/* Presets List */}
@@ -148,7 +148,7 @@ const PresetDropdown: React.FC<PresetDropdownProps> = ({ symbols, timeframes, on
                             <span className="text-slate-200 font-medium">{preset.name}</span>
                           </div>
                           <div className="text-xs text-slate-400 mt-1">
-                            {preset.symbols.length} نماد • {preset.timeframes.length} بازه
+                            {preset.symbols.length} symbols • {preset.timeframes.length} TFs
                           </div>
                         </button>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -184,11 +184,11 @@ const PresetDropdown: React.FC<PresetDropdownProps> = ({ symbols, timeframes, on
                 className="flex-1 px-3 py-2 bg-slate-700/50 hover:bg-slate-700 text-slate-300 rounded text-sm flex items-center justify-center gap-1 transition-colors"
               >
                 <Download className="w-3 h-3" />
-                <span>خروجی</span>
+                <span>Export</span>
               </button>
               <label className="flex-1 px-3 py-2 bg-slate-700/50 hover:bg-slate-700 text-slate-300 rounded text-sm flex items-center justify-center gap-1 transition-colors cursor-pointer">
                 <Upload className="w-3 h-3" />
-                <span>ورودی</span>
+                <span>Import</span>
                 <input
                   type="file"
                   accept=".json"
@@ -205,17 +205,17 @@ const PresetDropdown: React.FC<PresetDropdownProps> = ({ symbols, timeframes, on
       {showSaveModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-md p-6 space-y-4">
-            <h3 className="text-xl font-bold text-white">ذخیره پیش‌تنظیم جدید</h3>
+            <h3 className="text-xl font-bold text-white">Save New Preset</h3>
             
             <div className="space-y-2">
               <label className="block text-sm font-medium text-slate-300">
-                نام پیش‌تنظیم
+                Preset Name
               </label>
               <input
                 type="text"
                 value={presetName}
                 onChange={(e) => setPresetName(e.target.value)}
-                placeholder="مثال: معاملات روزانه"
+                placeholder="e.g., Day Trading"
                 autoFocus
                 className="w-full px-4 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white placeholder-slate-400 focus:border-cyan-500/50 focus:outline-none"
               />
@@ -230,7 +230,7 @@ const PresetDropdown: React.FC<PresetDropdownProps> = ({ symbols, timeframes, on
                 className="w-4 h-4 accent-yellow-500"
               />
               <label htmlFor="makeFavorite" className="text-sm text-slate-300">
-                علامت‌گذاری به عنوان محبوب
+                Mark as favorite
               </label>
             </div>
             
@@ -240,7 +240,7 @@ const PresetDropdown: React.FC<PresetDropdownProps> = ({ symbols, timeframes, on
                 disabled={!presetName.trim()}
                 className="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg font-medium hover:from-cyan-600 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                ذخیره
+                Save
               </button>
               <button
                 onClick={() => {
@@ -250,7 +250,7 @@ const PresetDropdown: React.FC<PresetDropdownProps> = ({ symbols, timeframes, on
                 }}
                 className="px-4 py-2 bg-slate-700 text-slate-300 rounded-lg font-medium hover:bg-slate-600 transition-colors"
               >
-                انصراف
+                Cancel
               </button>
             </div>
           </div>

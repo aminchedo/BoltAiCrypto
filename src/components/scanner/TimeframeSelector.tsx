@@ -8,9 +8,9 @@ interface TimeframePreset {
 }
 
 const TIMEFRAME_PRESETS: TimeframePreset[] = [
-  { id: 'scalp', label: '⚡ اسکالپ', timeframes: ['1m', '5m', '15m'] },
-  { id: 'day', label: '📈 روزانه', timeframes: ['15m', '1h', '4h'] },
-  { id: 'swing', label: '📊 سوئینگ', timeframes: ['4h', '1d', '1w'] },
+  { id: 'scalp', label: '⚡ Scalp', timeframes: ['1m', '5m', '15m'] },
+  { id: 'day', label: '📈 Day', timeframes: ['15m', '1h', '4h'] },
+  { id: 'swing', label: '📊 Swing', timeframes: ['4h', '1d', '1w'] },
 ];
 
 const ALL_TIMEFRAMES = ['1m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '12h', '1d', '1w'];
@@ -40,7 +40,7 @@ const TimeframeSelector: React.FC<TimeframeSelectorProps> = ({ timeframes, onCha
     <div className="space-y-3">
       <label className="block text-sm font-semibold text-slate-300 flex items-center gap-2">
         <Clock className="w-4 h-4" />
-        بازه‌های زمانی ({timeframes.length} انتخاب شده)
+        Timeframes ({timeframes.length} selected)
       </label>
       
       {/* Presets */}
@@ -85,7 +85,7 @@ const TimeframeSelector: React.FC<TimeframeSelectorProps> = ({ timeframes, onCha
       
       {/* Helper Text */}
       <p className="text-xs text-slate-400">
-        💡 حداقل ۱ بازه زمانی لازم است. بازه‌های کوتاه‌تر برای معاملات سریع‌تر مناسب‌اند.
+        💡 At least 1 timeframe required. Shorter timeframes for faster trades.
       </p>
     </div>
   );

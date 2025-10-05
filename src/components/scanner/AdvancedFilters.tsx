@@ -24,7 +24,7 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
       >
         <span className="flex items-center gap-2 font-semibold">
           <SlidersHorizontal className="w-4 h-4" />
-          فیلترهای پیشرفته
+          Advanced Filters
         </span>
         {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
       </button>
@@ -35,7 +35,7 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
           {/* Score Range */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-slate-300">
-              محدوده امتیاز
+              Score Range
             </label>
             <div className="flex items-center gap-3">
               <input
@@ -47,7 +47,7 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                 onChange={(e) => onChange({ scoreMin: parseFloat(e.target.value) || 0 })}
                 className="w-20 px-3 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white text-sm focus:border-cyan-500/50 focus:outline-none"
               />
-              <span className="text-slate-400">تا</span>
+              <span className="text-slate-400">to</span>
               <input
                 type="number"
                 min="0"
@@ -59,31 +59,31 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
               />
             </div>
             <p className="text-xs text-slate-400">
-              فقط امتیازهای بین {filters.scoreMin} و {filters.scoreMax}
+              Only scores between {filters.scoreMin} and {filters.scoreMax}
             </p>
           </div>
           
           {/* Price Change Filter */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-slate-300">
-              تغییر قیمت (۲۴ ساعت)
+              Price Change (24h)
             </label>
             <select
               value={filters.priceChange}
               onChange={(e) => onChange({ priceChange: e.target.value as any })}
               className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white text-sm focus:border-cyan-500/50 focus:outline-none"
             >
-              <option value="any">همه</option>
-              <option value="gainers">صعودی (&gt;0%)</option>
-              <option value="losers">نزولی (&lt;0%)</option>
-              <option value="bigmovers">حرکت بزرگ (&gt;5%)</option>
+              <option value="any">All</option>
+              <option value="gainers">Gainers (&gt;0%)</option>
+              <option value="losers">Losers (&lt;0%)</option>
+              <option value="bigmovers">Big Movers (&gt;5%)</option>
             </select>
           </div>
           
           {/* Volume Filter */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-slate-300">
-              حداقل حجم معاملات
+              Minimum Volume
             </label>
             <input
               type="number"
@@ -91,18 +91,18 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
               step="1000000"
               value={filters.volumeMin}
               onChange={(e) => onChange({ volumeMin: parseFloat(e.target.value) || 0 })}
-              placeholder="۰ (بدون محدودیت)"
+              placeholder="0 (no limit)"
               className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white text-sm focus:border-cyan-500/50 focus:outline-none"
             />
             <p className="text-xs text-slate-400">
-              حجم به دلار (مثلاً ۱۰۰۰۰۰۰۰ = ۱۰M)
+              Volume in USD (e.g., 10000000 = 10M)
             </p>
           </div>
           
           {/* Signal Count */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-slate-300">
-              حداقل تعداد سیگنال فعال
+              Minimum Active Signals
             </label>
             <div className="flex items-center gap-3">
               <input
@@ -122,13 +122,13 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
           {/* Timeframe Agreement */}
           <div className="space-y-2 md:col-span-2">
             <label className="block text-sm font-medium text-slate-300">
-              توافق بازه‌های زمانی
+              Timeframe Agreement
             </label>
             <div className="flex flex-wrap gap-2">
               {[
-                { value: 'any', label: 'حداقل یکی' },
-                { value: 'majority', label: 'اکثریت' },
-                { value: 'full', label: 'اجماع کامل' },
+                { value: 'any', label: 'At least one' },
+                { value: 'majority', label: 'Majority' },
+                { value: 'full', label: 'Full consensus' },
               ].map((option) => (
                 <button
                   key={option.value}
@@ -160,7 +160,7 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
               })}
               className="px-4 py-2 bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg text-sm font-medium hover:bg-red-500/30 transition-colors"
             >
-              بازنشانی فیلترها
+              Reset Filters
             </button>
           </div>
         </div>

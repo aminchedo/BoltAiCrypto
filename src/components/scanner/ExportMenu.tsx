@@ -19,7 +19,7 @@ const ExportMenu: React.FC<ExportMenuProps> = ({ results }) => {
   };
 
   const handleExportCSV = () => {
-    const headers = ['نماد', 'امتیاز', 'جهت', 'تعداد بازه‌های زمانی', 'بازه‌ها'];
+    const headers = ['Symbol', 'Score', 'Direction', 'TF Count', 'Timeframes'];
     const rows = results.map(r => [
       r.symbol,
       getScore(r).toFixed(2),
@@ -81,16 +81,16 @@ const ExportMenu: React.FC<ExportMenuProps> = ({ results }) => {
 
   const handleShare = async () => {
     // Create a shareable summary
-    const summary = `🔍 نتایج اسکن بازار\n\n` +
+    const summary = `🔍 Market Scan Results\n\n` +
       results.slice(0, 5).map(r => 
         `${r.symbol}: ${(getScore(r) * 100).toFixed(0)}% - ${getDirection(r)}`
       ).join('\n') +
-      (results.length > 5 ? `\n\n... و ${results.length - 5} نماد دیگر` : '');
+      (results.length > 5 ? `\n\n... and ${results.length - 5} more symbols` : '');
 
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'نتایج اسکن بازار',
+          title: 'Market Scan Results',
           text: summary,
         });
       } catch (error) {
@@ -112,7 +112,7 @@ const ExportMenu: React.FC<ExportMenuProps> = ({ results }) => {
         className="flex items-center gap-2 px-4 py-2 bg-slate-700/70 border border-slate-600 text-slate-300 rounded-lg hover:bg-slate-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <Download className="w-4 h-4" />
-        <span>خروجی</span>
+        <span>Export</span>
       </button>
 
       {showMenu && (
@@ -123,8 +123,8 @@ const ExportMenu: React.FC<ExportMenuProps> = ({ results }) => {
           >
             <FileText className="w-4 h-4 text-emerald-400" />
             <div className="flex-1">
-              <div className="font-medium">خروجی CSV</div>
-              <div className="text-xs text-slate-400">برای Excel و Google Sheets</div>
+              <div className="font-medium">Export CSV</div>
+              <div className="text-xs text-slate-400">For Excel & Google Sheets</div>
             </div>
           </button>
 
@@ -134,8 +134,8 @@ const ExportMenu: React.FC<ExportMenuProps> = ({ results }) => {
           >
             <FileText className="w-4 h-4 text-cyan-400" />
             <div className="flex-1">
-              <div className="font-medium">خروجی JSON</div>
-              <div className="text-xs text-slate-400">فرمت داده ساختاریافته</div>
+              <div className="font-medium">Export JSON</div>
+              <div className="text-xs text-slate-400">Structured data format</div>
             </div>
           </button>
 
@@ -150,9 +150,9 @@ const ExportMenu: React.FC<ExportMenuProps> = ({ results }) => {
             )}
             <div className="flex-1">
               <div className="font-medium">
-                {copied ? 'کپی شد!' : 'کپی متن'}
+                {copied ? 'Copied!' : 'Copy Text'}
               </div>
-              <div className="text-xs text-slate-400">کپی به کلیپ‌بورد</div>
+              <div className="text-xs text-slate-400">Copy to clipboard</div>
             </div>
           </button>
 
@@ -162,8 +162,8 @@ const ExportMenu: React.FC<ExportMenuProps> = ({ results }) => {
           >
             <Share2 className="w-4 h-4 text-purple-400" />
             <div className="flex-1">
-              <div className="font-medium">اشتراک‌گذاری</div>
-              <div className="text-xs text-slate-400">ارسال به دیگران</div>
+              <div className="font-medium">Share</div>
+              <div className="text-xs text-slate-400">Send to others</div>
             </div>
           </button>
         </div>
