@@ -35,6 +35,7 @@ from analytics.phase3_integration import phase3_analytics_engine
 
 # Import Phase 7, 8, 9 components
 from api.routes import router as enhanced_router
+from api.routes_agent import router as agent_router
 from api.models import WeightConfig
 from scoring.engine import DynamicScoringEngine
 from scoring.scanner import MultiTimeframeScanner
@@ -123,6 +124,7 @@ app.add_middleware(
 # Include routers
 app.include_router(scoring_router)
 app.include_router(data_router)
+app.include_router(agent_router)
 
 # WebSocket connection manager
 class ConnectionManager:
