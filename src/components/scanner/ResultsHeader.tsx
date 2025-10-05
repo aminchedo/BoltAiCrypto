@@ -39,6 +39,7 @@ const ResultsHeader: React.FC<ResultsHeaderProps> = ({
     { mode: 'list', icon: List, label: 'لیست' },
     { mode: 'grid', icon: Grid3x3, label: 'شبکه' },
     { mode: 'chart', icon: LineChart, label: 'نمودار' },
+    { mode: 'heatmap', icon: Filter, label: 'نقشه' },
   ];
 
   const sortFields: { field: SortField; label: string }[] = [

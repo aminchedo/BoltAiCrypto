@@ -2,6 +2,7 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useScannerConfig } from '../../state/hooks';
 import { api } from '../../services/api';
 import { ScanResponse, ScanResult } from '../../types';
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import QuickFilters from '../../components/scanner/QuickFilters';
 import SymbolInput from '../../components/scanner/SymbolInput';
 import TimeframeSelector from '../../components/scanner/TimeframeSelector';
@@ -12,13 +13,16 @@ import ResultsHeader from '../../components/scanner/ResultsHeader';
 import ResultsTable from '../../components/scanner/ResultsTable';
 import ResultsGrid from '../../components/scanner/ResultsGrid';
 import ResultsChart from '../../components/scanner/ResultsChart';
+import ScannerHeatmap from '../../components/scanner/ScannerHeatmap';
 import ExportMenu from '../../components/scanner/ExportMenu';
 import ComparisonPanel from '../../components/scanner/ComparisonPanel';
+import KeyboardShortcutsPanel from '../../components/scanner/KeyboardShortcutsPanel';
+import SessionHistory, { addScanSession } from '../../components/scanner/SessionHistory';
 import Loading from '../../components/Loading';
 import Empty from '../../components/Empty';
 import ErrorBlock from '../../components/ErrorBlock';
 
-export type ViewMode = 'list' | 'grid' | 'chart';
+export type ViewMode = 'list' | 'grid' | 'chart' | 'heatmap';
 export type SortField = 'score' | 'symbol' | 'change' | 'volume';
 export type SortDirection = 'asc' | 'desc';
 export type DirectionFilter = 'all' | 'BULLISH' | 'BEARISH' | 'NEUTRAL';
@@ -91,6 +95,9 @@ const Scanner: React.FC = () => {
     showComparison: false,
   });
 
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+
   // Helper to extract score from result (tolerant to backend variations)
   const getScore = useCallback((result: ScanResult): number => {
     return result.overall_score ?? result.final_score ?? result.score ?? 0;
@@ -138,6 +145,9 @@ const Scanner: React.FC = () => {
         isScanning: false,
         scanTime: new Date().toISOString(),
       }));
+      
+      // Add to session history
+      addScanSession(state.symbols, state.timeframes, scanResults);
     } catch (err: any) {
       console.error('Scanner error:', err);
       setState(prev => ({
@@ -316,20 +326,109 @@ const Scanner: React.FC = () => {
     setState(prev => ({ ...prev, showComparison: !prev.showComparison }));
   }, []);
 
+  // Keyboard shortcuts
+  useKeyboardShortcuts([
+    {
+      key: 's',
+      ctrlKey: true,
+      handler: (e) => {
+        e.preventDefault();
+        if (!state.isScanning) handleScan(false);
+      },
+      description: 'اجرای اسکن عمیق'
+    },
+    {
+      key: 'q',
+      ctrlKey: true,
+      handler: () => {
+        if (!state.isScanning) handleScan(true);
+      },
+      description: 'اجرای اسکن سریع'
+    },
+    {
+      key: '1',
+      handler: () => handleViewModeChange('list'),
+      description: 'نمای لیست'
+    },
+    {
+      key: '2',
+      handler: () => handleViewModeChange('grid'),
+      description: 'نمای شبکه'
+    },
+    {
+      key: '3',
+      handler: () => handleViewModeChange('chart'),
+      description: 'نمای نمودار'
+    },
+    {
+      key: '4',
+      handler: () => handleViewModeChange('heatmap'),
+      description: 'نقشه حرارتی'
+    },
+    {
+      key: 'f',
+      handler: () => setState(prev => ({ ...prev, showAdvancedFilters: !prev.showAdvancedFilters })),
+      description: 'فیلترهای پیشرفته'
+    },
+    {
+      key: 'b',
+      handler: () => handleDirectionFilterChange('BULLISH'),
+      description: 'فقط صعودی'
+    },
+    {
+      key: 'n',
+      handler: () => handleDirectionFilterChange('BEARISH'),
+      description: 'فقط نزولی'
+    },
+    {
+      key: 'r',
+      handler: () => handleDirectionFilterChange('all'),
+      description: 'بازنشانی فیلتر جهت'
+    },
+    {
+      key: '?',
+      handler: () => setShowShortcuts(true),
+      description: 'نمایش راهنمای میانبرها'
+    },
+    {
+      key: 'Escape',
+      handler: () => {
+        if (showShortcuts) setShowShortcuts(false);
+        else if (state.showComparison) handleToggleComparison();
+      },
+      description: 'بستن مودال‌ها'
+    }
+  ], !showShortcuts && !state.showComparison);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-6">
       <div className="max-w-[1600px] mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
               🔍 اسکنر پیشرفته بازار
+              <button
+                onClick={() => setShowShortcuts(true)}
+                className="text-sm px-3 py-1 bg-purple-500/20 border border-purple-500/30 text-purple-300 rounded-lg hover:bg-purple-500/30 transition-colors flex items-center gap-1"
+                title="میانبرهای صفحه‌کلید"
+              >
+                <span>?</span>
+                <span className="hidden sm:inline">میانبرها</span>
+              </button>
             </h1>
             <p className="text-slate-400">
               اسکن چند بازه زمانی با تحلیل ترکیبی ۹ الگوریتم حرفه‌ای
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              onClick={() => setShowHistory(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-700/70 border border-slate-600 text-slate-300 rounded-lg hover:bg-slate-700 transition-colors font-medium"
+            >
+              <span>📜</span>
+              <span className="hidden sm:inline">تاریخچه</span>
+            </button>
             <ExportMenu results={sortedResults} />
             <PresetDropdown 
               symbols={state.symbols}
@@ -451,6 +550,12 @@ const Scanner: React.FC = () => {
                   results={sortedResults}
                 />
               )}
+              
+              {state.viewMode === 'heatmap' && (
+                <ScannerHeatmap 
+                  results={sortedResults}
+                />
+              )}
             </>
           )}
         </div>
@@ -463,6 +568,25 @@ const Scanner: React.FC = () => {
             onClose={() => setState(prev => ({ ...prev, showComparison: false }))}
           />
         )}
+
+        {/* Keyboard Shortcuts Panel */}
+        <KeyboardShortcutsPanel 
+          isOpen={showShortcuts}
+          onClose={() => setShowShortcuts(false)}
+        />
+
+        {/* Session History Panel */}
+        <SessionHistory
+          isOpen={showHistory}
+          onClose={() => setShowHistory(false)}
+          onRestore={(session) => {
+            setState(prev => ({
+              ...prev,
+              symbols: session.symbols,
+              timeframes: session.timeframes,
+            }));
+          }}
+        />
       </div>
     </div>
   );
