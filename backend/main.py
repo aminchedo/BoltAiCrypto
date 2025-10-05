@@ -128,8 +128,13 @@ async def login(credentials: dict):
     }
 
 @app.get("/auth/me")
-async def get_current_user_info(current_user: dict = Depends(get_current_user)):
-    return current_user
+async def get_current_user_info():
+    # Return mock user for direct access mode (no authentication required)
+    return {
+        "username": "trader",
+        "email": "trader@hts.local",
+        "is_admin": True
+    }
 
 @app.get("/health")
 async def health_check():
@@ -1340,7 +1345,7 @@ async def get_database_risk_limits(db: Session = Depends(get_db)):
 
 # Multi-timeframe analysis endpoint
 @app.get("/api/analysis/multi-timeframe/{symbol}")
-async def get_multi_timeframe_analysis(symbol: str, current_user: dict = Depends(get_current_user)):
+async def get_multi_timeframe_analysis(symbol: str):
     """Get comprehensive multi-timeframe analysis for a symbol"""
     try:
         start_time = datetime.now()
@@ -1370,7 +1375,7 @@ async def get_multi_timeframe_analysis(symbol: str, current_user: dict = Depends
 
 # Risk metrics endpoint
 @app.get("/api/risk/metrics")
-async def get_risk_metrics(current_user: dict = Depends(get_current_user)):
+async def get_risk_metrics():
     """Get comprehensive risk metrics"""
     try:
         # Get basic risk status from existing risk manager
@@ -1404,7 +1409,7 @@ async def get_risk_metrics(current_user: dict = Depends(get_current_user)):
 
 # Portfolio positions endpoint (mock for now)
 @app.get("/api/portfolio/positions")
-async def get_portfolio_positions(current_user: dict = Depends(get_current_user)):
+async def get_portfolio_positions():
     """Get current portfolio positions"""
     try:
         # Mock positions data - replace with real portfolio data
