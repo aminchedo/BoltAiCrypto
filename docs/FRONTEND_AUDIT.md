@@ -646,12 +646,12 @@ These do NOT block development but should be addressed during Phase 7 (Polish).
 - [ ] Update websocket.ts with state tracking
 - [ ] PR: `feat(core): stable api/ws clients and observable store`
 
-### Phase 3 ⭐ CRITICAL
-- [ ] Create Market Scanner component
-- [ ] Wire to `POST /api/scanner/run`
-- [ ] ScoreGauge, DirectionPill components
-- [ ] Replace client-side tradingEngine with backend API
-- [ ] PR: `feat(scanner): multi-timeframe market scanner wired to backend`
+### Phase 3 ⭐ CRITICAL ✅ COMPLETED
+- [x] Create Market Scanner component
+- [x] Wire to `POST /api/scanner/run`
+- [x] ScoreGauge, DirectionPill components
+- [x] Replace client-side tradingEngine with backend API
+- [x] PR: `feat(scanner): multi-timeframe market scanner wired to backend`
 
 ### Phase 4
 - [ ] Signal Details page (`/signal/:symbol`)

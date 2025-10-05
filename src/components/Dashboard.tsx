@@ -7,10 +7,11 @@ import BacktestPanel from './BacktestPanel';
 import PnLDashboard from './PnLDashboard';
 import PredictiveAnalyticsDashboard from './PredictiveAnalyticsDashboard';
 import WSBadge from './WSBadge';
+import MarketScanner from './MarketScanner';
 import { TradingSignal, MarketData, OHLCVData } from '../types';
 import { tradingEngine } from '../services/tradingEngine';
 import { binanceApi } from '../services/binanceApi';
-import { Activity, RefreshCw, BarChart3, Zap, TrendingUp, PieChart, DollarSign, TestTube, MessageSquare, Brain } from 'lucide-react';
+import { Activity, RefreshCw, BarChart3, Zap, TrendingUp, PieChart, DollarSign, TestTube, MessageSquare, Brain, Search } from 'lucide-react';
 import clsx from 'clsx';
 
 interface DashboardProps {
@@ -26,7 +27,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [isConnected, setIsConnected] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [systemHealth, setSystemHealth] = useState<any>({ status: 'healthy' });
-  const [activeTab, setActiveTab] = useState<string>('signals');
+  const [activeTab, setActiveTab] = useState<string>('scanner');
   const [apiHealthData, setApiHealthData] = useState<any>(null);
   const [detailedAnalysis, setDetailedAnalysis] = useState<any>(null);
 
@@ -249,15 +250,16 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
       <main className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
         {/* Navigation Tabs */}
         <div className="mb-6">
-          <div className="flex space-x-1 bg-gray-800/30 backdrop-blur-lg rounded-xl p-1 border border-gray-700/50">
+          <div className="flex space-x-1 bg-gray-800/30 backdrop-blur-lg rounded-xl p-1 border border-gray-700/50 overflow-x-auto">
             {[
-              { id: 'signals', label: 'Live Signals', icon: TrendingUp },
-              { id: 'portfolio', label: 'Portfolio', icon: PieChart },
-              { id: 'pnl', label: 'P&L Analytics', icon: DollarSign },
-              { id: 'backtest', label: 'Backtesting', icon: TestTube },
-              { id: 'analytics', label: 'Predictive Analytics', icon: Brain },
-              { id: 'notifications', label: 'Notifications', icon: MessageSquare },
-              { id: 'apis', label: 'API Status', icon: Activity }
+              { id: 'scanner', label: 'اسکنر بازار', icon: Search },
+              { id: 'signals', label: 'سیگنال‌ها', icon: TrendingUp },
+              { id: 'portfolio', label: 'پرتفوی', icon: PieChart },
+              { id: 'pnl', label: 'تحلیل P&L', icon: DollarSign },
+              { id: 'backtest', label: 'بک‌تست', icon: TestTube },
+              { id: 'analytics', label: 'تحلیل پیشرفته', icon: Brain },
+              { id: 'notifications', label: 'اعلان‌ها', icon: MessageSquare },
+              { id: 'apis', label: 'وضعیت API', icon: Activity }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -277,6 +279,19 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
         </div>
 
         <div className="grid grid-cols-12 gap-8">
+          {/* Market Scanner Tab */}
+          {activeTab === 'scanner' && (
+            <div className="col-span-12">
+              <MarketScanner 
+                onOpenDetails={(symbol) => {
+                  console.log('Open details for:', symbol);
+                  // TODO: Navigate to signal details page when Phase 4 is implemented
+                  alert(`جزئیات ${symbol} در فاز 4 پیاده‌سازی خواهد شد`);
+                }}
+              />
+            </div>
+          )}
+
           {/* Conditional Content Based on Active Tab */}
           {activeTab === 'signals' && (
             <>
