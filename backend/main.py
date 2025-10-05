@@ -32,6 +32,9 @@ from analytics.advanced_smc import advanced_smc_analyzer
 from analytics.ml_ensemble import ml_ensemble_predictor
 from analytics.multi_timeframe import mtf_analyzer, analyze_symbol_mtf
 
+# Import Phase 4 scoring system
+from scoring.api import router as scoring_router
+
 # Import database components
 from database.connection import get_db, init_db
 from database.models import TradingSession, SignalRecord, TradeRecord, SystemMetrics, RiskLimit
@@ -66,6 +69,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(scoring_router)
 
 # WebSocket connection manager
 class ConnectionManager:
