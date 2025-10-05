@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Zap, ZapOff } from 'lucide-react';
 import { getAgentStatus, toggleAgent, subscribeSymbols } from '../../services/agent';
 import { WebSocketManager } from '../../services/websocket';
+import { store } from '../../state/store';
 
 interface AgentToggleProps {
   wsManager?: WebSocketManager;
@@ -10,11 +11,20 @@ interface AgentToggleProps {
 
 export default function AgentToggle({ 
   wsManager, 
-  watchlistSymbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT'] 
+  watchlistSymbols 
 }: AgentToggleProps) {
   const [enabled, setEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Get watchlist symbols from store if not provided
+  const getWatchlistSymbols = (): string[] => {
+    if (watchlistSymbols && watchlistSymbols.length > 0) {
+      return watchlistSymbols;
+    }
+    const state = store.getState();
+    return state.symbols;
+  };
 
   // Load initial status
   useEffect(() => {
@@ -50,14 +60,17 @@ export default function AgentToggle({
           await new Promise(resolve => setTimeout(resolve, 500));
         }
 
+        // Get current watchlist symbols from store
+        const currentSymbols = getWatchlistSymbols();
+
         // Subscribe to symbols
-        await subscribeSymbols(watchlistSymbols);
+        await subscribeSymbols(currentSymbols);
         
         // Send subscription message via WebSocket
         if (wsManager) {
           wsManager.send({
             action: 'subscribe',
-            symbols: watchlistSymbols
+            symbols: currentSymbols
           });
         }
       } else {
