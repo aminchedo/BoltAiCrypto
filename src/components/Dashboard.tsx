@@ -8,6 +8,7 @@ import PnLDashboard from './PnLDashboard';
 import PredictiveAnalyticsDashboard from './PredictiveAnalyticsDashboard';
 import WSBadge from './WSBadge';
 import MarketScanner from './MarketScanner';
+import SignalDetails from './SignalDetails';
 import { TradingSignal, MarketData, OHLCVData } from '../types';
 import { tradingEngine } from '../services/tradingEngine';
 import { binanceApi } from '../services/binanceApi';
@@ -30,6 +31,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState<string>('scanner');
   const [apiHealthData, setApiHealthData] = useState<any>(null);
   const [detailedAnalysis, setDetailedAnalysis] = useState<any>(null);
+  const [selectedSymbolForDetails, setSelectedSymbolForDetails] = useState<string | null>(null);
 
   const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'SOLUSDT', 'XRPUSDT'];
 
@@ -280,14 +282,22 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
 
         <div className="grid grid-cols-12 gap-8">
           {/* Market Scanner Tab */}
-          {activeTab === 'scanner' && (
+          {activeTab === 'scanner' && !selectedSymbolForDetails && (
             <div className="col-span-12">
               <MarketScanner 
                 onOpenDetails={(symbol) => {
-                  console.log('Open details for:', symbol);
-                  // TODO: Navigate to signal details page when Phase 4 is implemented
-                  alert(`جزئیات ${symbol} در فاز 4 پیاده‌سازی خواهد شد`);
+                  setSelectedSymbolForDetails(symbol);
                 }}
+              />
+            </div>
+          )}
+
+          {/* Signal Details View */}
+          {activeTab === 'scanner' && selectedSymbolForDetails && (
+            <div className="col-span-12">
+              <SignalDetails
+                symbol={selectedSymbolForDetails}
+                onBack={() => setSelectedSymbolForDetails(null)}
               />
             </div>
           )}

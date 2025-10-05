@@ -175,3 +175,53 @@ export interface ScanResponse {
   results?: ScanResult[];  // Backend may use this
   result?: ScanResult[];   // Or this (be tolerant)
 }
+
+// ==================== Analytics Types ====================
+
+export interface PredictionData {
+  symbol: string;
+  timeframe?: string;
+  combined_score: CombinedScore;
+  component_scores?: ComponentScore[];
+  confidence?: number;
+  timestamp?: string;
+}
+
+export interface CorrelationData {
+  assets: string[];
+  matrix: number[][];
+}
+
+export interface OrderBookLevel {
+  price: number;
+  size: number;
+}
+
+export interface MarketDepthData {
+  symbol: string;
+  bids: OrderBookLevel[];
+  asks: OrderBookLevel[];
+  timestamp?: string;
+}
+
+export interface SentimentScore {
+  value: number; // 0-1
+  label: string;
+  sources?: string[];
+}
+
+export interface NewsItem {
+  title: string;
+  source: string;
+  sentiment?: 'positive' | 'negative' | 'neutral';
+  timestamp: string;
+  url?: string;
+}
+
+export interface WhaleTransaction {
+  symbol: string;
+  amount: number;
+  usd_value: number;
+  type: 'buy' | 'sell';
+  timestamp: string;
+}
