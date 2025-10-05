@@ -13,12 +13,20 @@ logger = logging.getLogger(__name__)
 # Create router
 router = APIRouter(prefix="/api/agent", tags=["agent"])
 
+# Global reference to live scanner (set during app initialization)
+_live_scanner = None
+
+def set_live_scanner(scanner):
+    """Set the global live scanner instance"""
+    global _live_scanner
+    _live_scanner = scanner
+
 # Agent state management
 class AgentState:
     def __init__(self):
         # Read from environment variables with defaults
         self.enabled = os.getenv('REALTIME_AGENT_ENABLED', 'true').lower() == 'true'
-        self.scan_interval_ms = int(os.getenv('REALTIME_SCAN_INTERVAL_MS', '1000'))
+        self.scan_interval_ms = int(os.getenv('REALTIME_SCAN_INTERVAL_MS', '30000'))
         self.subscribed_symbols = []
 
     def dict(self):
@@ -58,7 +66,7 @@ async def get_agent_status():
 @router.put("/toggle")
 async def toggle_agent(enabled: bool):
     """
-    Toggle agent on/off
+    Toggle agent on/off - starts or stops the live scanner
     
     Args:
         enabled: True to enable agent, False to disable
@@ -69,14 +77,16 @@ async def toggle_agent(enabled: bool):
     try:
         agent_state.enabled = enabled
         
-        # TODO: Start/stop live scanner task accordingly
-        # This would integrate with the live_scanner from websocket.live_scanner
-        if enabled:
-            logger.info("Real-time agent enabled")
-            # await live_scanner.start()
+        # Start/stop live scanner based on toggle state
+        if _live_scanner:
+            if enabled:
+                logger.info("Real-time agent enabled - starting live scanner")
+                await _live_scanner.start()
+            else:
+                logger.info("Real-time agent disabled - stopping live scanner")
+                await _live_scanner.stop()
         else:
-            logger.info("Real-time agent disabled")
-            # await live_scanner.stop()
+            logger.warning("Live scanner not initialized - toggle saved but no scanner action")
         
         return agent_state.dict()
     except Exception as e:

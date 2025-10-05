@@ -98,7 +98,11 @@ async def startup_event():
         scanner = MultiTimeframeScanner(data_manager, scoring_engine, default_weights)
         
         # Initialize live scanner
-        await initialize_live_scanner(scoring_engine, scanner)
+        live_scanner_instance = await initialize_live_scanner(scoring_engine, scanner)
+        
+        # Wire live scanner to agent routes
+        from api.routes_agent import set_live_scanner
+        set_live_scanner(live_scanner_instance)
         
         app_logger.log_system_event("startup", "Enhanced trading system components initialized")
         
@@ -201,6 +205,104 @@ async def health_check():
         "total_apis": count_total_endpoints(),
         "data_source": "kucoin_primary"
     }
+
+@app.get("/api/metrics")
+async def get_metrics():
+    """Get system metrics for monitoring"""
+    try:
+        ws_stats = ws_manager.get_connection_stats()
+        
+        # Get agent state
+        from api.routes_agent import agent_state
+        
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "websocket": {
+                "connections": ws_stats["active_connections"],
+                "subscriptions": ws_stats["total_subscriptions"],
+                "messages_sent": ws_stats["message_count"],
+                "uptime": int(ws_stats["uptime"])
+            },
+            "agent": {
+                "enabled": agent_state.enabled,
+                "scan_interval_ms": agent_state.scan_interval_ms
+            },
+            "system": {
+                "active_signals": len(active_signals),
+                "version": "1.0.0"
+            }
+        }
+    except Exception as e:
+        logger.error(f"Metrics error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Weight configuration and presets management
+_current_weights = WeightConfig()
+_weight_presets = {
+    "balanced": WeightConfig(),
+    "aggressive": WeightConfig(
+        harmonic=0.12, elliott=0.12, smc=0.25, fibonacci=0.08,
+        price_action=0.18, sar=0.12, sentiment=0.08, news=0.03, whales=0.02
+    ),
+    "conservative": WeightConfig(
+        harmonic=0.18, elliott=0.18, smc=0.15, fibonacci=0.12,
+        price_action=0.12, sar=0.08, sentiment=0.12, news=0.03, whales=0.02
+    )
+}
+
+@app.get("/api/config/weights")
+async def get_current_weights():
+    """Get current weight configuration"""
+    return _current_weights.dict()
+
+@app.put("/api/config/weights")
+async def update_weights(weights: WeightConfig):
+    """Update current weight configuration"""
+    try:
+        weights.validate_sum()
+        global _current_weights
+        _current_weights = weights
+        return {"status": "success", "weights": weights.dict()}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/config/weight-presets")
+async def get_weight_presets():
+    """Get all available weight presets"""
+    return {
+        "presets": [
+            {"name": name, "weights": preset.dict()}
+            for name, preset in _weight_presets.items()
+        ]
+    }
+
+@app.post("/api/config/weight-presets")
+async def save_weight_preset(name: str, weights: WeightConfig):
+    """Save or update a weight preset"""
+    try:
+        weights.validate_sum()
+        _weight_presets[name] = weights
+        return {
+            "status": "success",
+            "message": f"Preset '{name}' saved",
+            "preset": {"name": name, "weights": weights.dict()}
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/config/weight-presets/{name}")
+async def delete_weight_preset(name: str):
+    """Delete a weight preset"""
+    if name not in _weight_presets:
+        raise HTTPException(status_code=404, detail=f"Preset '{name}' not found")
+    if name == "balanced":
+        raise HTTPException(status_code=400, detail="Cannot delete default 'balanced' preset")
+    del _weight_presets[name]
+    return {"status": "success", "message": f"Preset '{name}' deleted"}
 
 # KuCoin Market Data Endpoints (Replace Binance)
 @app.get("/api/kucoin/price/{symbol}")
@@ -1627,37 +1729,63 @@ async def get_performance_metrics():
 # WebSocket endpoint for real-time data
 @app.websocket("/ws/realtime")
 async def websocket_endpoint(websocket: WebSocket):
-    """WebSocket endpoint for real-time data streaming"""
-    await websocket.accept()
+    """WebSocket endpoint for real-time agent streaming"""
+    await ws_manager.connect(websocket)
     
     try:
-        from analytics.realtime_stream import stream_manager
+        # Send initial status
+        stats = ws_manager.get_connection_stats()
+        await websocket.send_text(json.dumps({
+            "type": "status",
+            "ws": {
+                "connections": stats["active_connections"],
+                "uptime": int(stats["uptime"])
+            }
+        }))
         
-        # Add to connections
-        stream_manager.connections.add(websocket)
-        logger.info(f"WebSocket client connected via FastAPI. Total: {len(stream_manager.connections)}")
-        
-        # Send initial data
-        await stream_manager._send_initial_data(websocket)
-        
+        # Handle incoming messages
         while True:
-            # Handle incoming messages
             try:
                 data = await websocket.receive_text()
-                await stream_manager._handle_client_message(websocket, data)
+                message = json.loads(data)
+                action = message.get('action')
+                
+                if action == 'subscribe':
+                    symbols = message.get('symbols', [])
+                    for symbol in symbols:
+                        await ws_manager.subscribe(websocket, symbol)
+                    await websocket.send_text(json.dumps({
+                        "type": "subscription_confirmed",
+                        "symbols": symbols
+                    }))
+                    
+                elif action == 'unsubscribe':
+                    symbols = message.get('symbols', [])
+                    for symbol in symbols:
+                        await ws_manager.unsubscribe(websocket, symbol)
+                    await websocket.send_text(json.dumps({
+                        "type": "unsubscription_confirmed",
+                        "symbols": symbols
+                    }))
+                    
+                elif action == 'ping':
+                    await websocket.send_text(json.dumps({"type": "pong"}))
+                    
+            except json.JSONDecodeError:
+                await websocket.send_text(json.dumps({
+                    "type": "error",
+                    "message": "Invalid JSON"
+                }))
             except Exception as e:
                 logger.error(f"WebSocket message error: {e}")
                 break
                 
+    except WebSocketDisconnect:
+        logger.info("WebSocket client disconnected")
     except Exception as e:
         logger.error(f"WebSocket connection error: {e}")
     finally:
-        # Clean up
-        if hasattr(stream_manager, 'connections'):
-            stream_manager.connections.discard(websocket)
-        for symbol_subs in getattr(stream_manager, 'subscriptions', {}).values():
-            symbol_subs.discard(websocket)
-        logger.info("WebSocket client disconnected")
+        ws_manager.disconnect(websocket)
 
 # Hugging Face AI endpoints
 @app.get("/api/ai/sentiment/{symbol}")
@@ -2064,6 +2192,44 @@ except Exception as e:
     enhanced_risk_manager = None
 
 # Phase 5: Multi-Timeframe Scanner Endpoints
+@app.post("/api/signals/score")
+async def score_signal(request: dict):
+    """Score a single symbol for signal generation"""
+    try:
+        symbol = request.get('symbol', 'BTCUSDT')
+        timeframe = request.get('timeframe', '1h')
+        
+        if not mtf_scanner:
+            raise HTTPException(status_code=500, detail="Scanner not available")
+        
+        # Run scanner for single symbol
+        rules = ScanRule(
+            min_confidence=0.0,
+            exclude_neutral=False
+        )
+        
+        results = await mtf_scanner.scan([symbol], [timeframe], rules)
+        
+        if not results:
+            return {
+                "direction": "NEUTRAL",
+                "confidence": 0.0,
+                "advice": "No signal generated"
+            }
+        
+        result = results[0]
+        
+        # Map to ScoreResponse format
+        return {
+            "direction": result.overall_direction,
+            "confidence": result.consensus_strength,
+            "advice": f"{result.recommended_action} - Risk: {result.risk_level}"
+        }
+        
+    except Exception as e:
+        logger.error(f"Signal scoring failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/scanner/run")
 async def run_mtf_scanner(request: dict):
     """Run multi-timeframe scanner across multiple symbols"""
