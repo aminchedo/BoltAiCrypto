@@ -31,6 +31,7 @@ from risk.advanced_risk_manager import advanced_risk_manager
 from analytics.advanced_smc import advanced_smc_analyzer
 from analytics.ml_ensemble import ml_ensemble_predictor
 from analytics.multi_timeframe import mtf_analyzer, analyze_symbol_mtf
+from analytics.phase3_integration import phase3_analytics_engine
 
 # Import database components
 from database.connection import get_db, init_db
@@ -1731,6 +1732,198 @@ async def ask_market_question(request: dict):
         
     except Exception as e:
         log_error("question_answering_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Phase 3 Advanced Pattern Detectors API Endpoints
+
+@app.get("/api/analytics/phase3/comprehensive/{symbol}")
+async def get_phase3_comprehensive_analysis(symbol: str, interval: str = "1h", limit: int = 200):
+    """Get comprehensive Phase 3 analysis with all advanced pattern detectors"""
+    try:
+        # Get OHLCV data
+        ohlcv_data = await data_manager.get_ohlcv_data(symbol, interval, limit)
+        
+        if ohlcv_data is None or len(ohlcv_data) < 50:
+            raise HTTPException(status_code=400, detail="Insufficient data for analysis")
+        
+        # Convert to DataFrame
+        df = pd.DataFrame(ohlcv_data)
+        df.set_index('timestamp', inplace=True)
+        
+        # Run comprehensive Phase 3 analysis
+        analysis_result = await phase3_analytics_engine.analyze_comprehensive(df)
+        
+        log_api_call(f"/api/analytics/phase3/comprehensive/{symbol}", "GET", 0.45, 200)
+        
+        return {
+            "symbol": symbol,
+            "analysis": analysis_result,
+            "data_points": len(ohlcv_data),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        log_error("phase3_comprehensive_analysis_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/analytics/phase3/harmonic/{symbol}")
+async def get_harmonic_analysis(symbol: str, interval: str = "1h", limit: int = 200):
+    """Get harmonic pattern analysis for a symbol"""
+    try:
+        # Get OHLCV data
+        ohlcv_data = await data_manager.get_ohlcv_data(symbol, interval, limit)
+        
+        if ohlcv_data is None or len(ohlcv_data) < 100:
+            raise HTTPException(status_code=400, detail="Insufficient data for harmonic analysis")
+        
+        # Convert to list format
+        ohlcv_list = []
+        for bar in ohlcv_data:
+            ohlcv_list.append({
+                'open': float(bar['open']),
+                'high': float(bar['high']),
+                'low': float(bar['low']),
+                'close': float(bar['close']),
+                'volume': float(bar['volume'])
+            })
+        
+        # Run harmonic analysis
+        result = await phase3_analytics_engine.harmonic_detector.detect(ohlcv_list)
+        
+        log_api_call(f"/api/analytics/phase3/harmonic/{symbol}", "GET", 0.35, 200)
+        
+        return {
+            "symbol": symbol,
+            "harmonic_analysis": {
+                "score": result.score,
+                "confidence": result.confidence,
+                "direction": result.direction,
+                "pattern": result.meta.get('pattern'),
+                "completion": result.meta.get('completion', 0),
+                "targets": result.meta.get('targets', []),
+                "points": result.meta.get('points', {})
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        log_error("harmonic_analysis_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/analytics/phase3/elliott/{symbol}")
+async def get_elliott_analysis(symbol: str, interval: str = "1h", limit: int = 200):
+    """Get Elliott Wave analysis for a symbol"""
+    try:
+        # Get OHLCV data
+        ohlcv_data = await data_manager.get_ohlcv_data(symbol, interval, limit)
+        
+        if ohlcv_data is None or len(ohlcv_data) < 150:
+            raise HTTPException(status_code=400, detail="Insufficient data for Elliott Wave analysis")
+        
+        # Convert to list format
+        ohlcv_list = []
+        for bar in ohlcv_data:
+            ohlcv_list.append({
+                'open': float(bar['open']),
+                'high': float(bar['high']),
+                'low': float(bar['low']),
+                'close': float(bar['close']),
+                'volume': float(bar['volume'])
+            })
+        
+        # Run Elliott Wave analysis
+        result = await phase3_analytics_engine.elliott_detector.detect(ohlcv_list)
+        
+        log_api_call(f"/api/analytics/phase3/elliott/{symbol}", "GET", 0.40, 200)
+        
+        return {
+            "symbol": symbol,
+            "elliott_analysis": {
+                "score": result.score,
+                "confidence": result.confidence,
+                "direction": result.direction,
+                "current_wave": result.meta.get('current_wave'),
+                "wave_count": result.meta.get('wave_count', []),
+                "forecast": result.meta.get('forecast', {}),
+                "degree": result.meta.get('degree')
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        log_error("elliott_analysis_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/analytics/phase3/smc/{symbol}")
+async def get_smc_analysis(symbol: str, interval: str = "1h", limit: int = 200):
+    """Get Smart Money Concepts analysis for a symbol"""
+    try:
+        # Get OHLCV data
+        ohlcv_data = await data_manager.get_ohlcv_data(symbol, interval, limit)
+        
+        if ohlcv_data is None or len(ohlcv_data) < 50:
+            raise HTTPException(status_code=400, detail="Insufficient data for SMC analysis")
+        
+        # Convert to list format
+        ohlcv_list = []
+        for bar in ohlcv_data:
+            ohlcv_list.append({
+                'open': float(bar['open']),
+                'high': float(bar['high']),
+                'low': float(bar['low']),
+                'close': float(bar['close']),
+                'volume': float(bar['volume'])
+            })
+        
+        # Run SMC analysis
+        result = await phase3_analytics_engine.smc_detector.detect(ohlcv_list)
+        
+        log_api_call(f"/api/analytics/phase3/smc/{symbol}", "GET", 0.30, 200)
+        
+        return {
+            "symbol": symbol,
+            "smc_analysis": {
+                "score": result.score,
+                "confidence": result.confidence,
+                "direction": result.direction,
+                "bos": result.meta.get('bos', False),
+                "choch": result.meta.get('choch', False),
+                "order_blocks_count": result.meta.get('order_blocks_count', 0),
+                "fvg_count": result.meta.get('fvg_count', 0),
+                "nearest_ob": result.meta.get('nearest_ob'),
+                "bos_details": result.meta.get('bos_details'),
+                "choch_details": result.meta.get('choch_details')
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        log_error("smc_analysis_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/analytics/phase3/status")
+async def get_phase3_status():
+    """Get status of all Phase 3 detectors"""
+    try:
+        return {
+            "phase3_detectors": {
+                "harmonic_detector": "active",
+                "elliott_detector": "active", 
+                "smc_detector": "active"
+            },
+            "integration_status": "complete",
+            "api_endpoints": [
+                "/api/analytics/phase3/comprehensive/{symbol}",
+                "/api/analytics/phase3/harmonic/{symbol}",
+                "/api/analytics/phase3/elliott/{symbol}",
+                "/api/analytics/phase3/smc/{symbol}",
+                "/api/analytics/phase3/status"
+            ],
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        log_error("phase3_status_error", str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 # Startup event to initialize real-time streaming
