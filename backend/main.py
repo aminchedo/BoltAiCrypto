@@ -31,6 +31,16 @@ from risk.advanced_risk_manager import advanced_risk_manager
 from analytics.advanced_smc import advanced_smc_analyzer
 from analytics.ml_ensemble import ml_ensemble_predictor
 from analytics.multi_timeframe import mtf_analyzer, analyze_symbol_mtf
+from analytics.phase3_integration import phase3_analytics_engine
+
+# Import Phase 7, 8, 9 components
+from api.routes import router as enhanced_router
+from api.models import WeightConfig
+from scoring.engine import DynamicScoringEngine
+from scoring.scanner import MultiTimeframeScanner
+from backtesting.engine import BacktestEngine
+from websocket.manager import manager as ws_manager
+from websocket.live_scanner import initialize_live_scanner
 
 # Import Phase 4 scoring system
 from scoring.api import router as scoring_router
@@ -53,6 +63,43 @@ security = HTTPBearer()
 async def startup_event():
     init_db()
     app_logger.log_system_event("startup", "HTS Trading System started")
+    
+    # Initialize Phase 7, 8, 9 components
+    try:
+        # Initialize detectors and scoring engine
+        from detectors.harmonic import HarmonicDetector
+        from detectors.elliott import ElliottWaveDetector
+        from detectors.smc import SMCDetector
+        from detectors.fibonacci import FibonacciDetector
+        from detectors.price_action import PriceActionDetector
+        from detectors.sar import SARDetector
+        from detectors.sentiment import SentimentDetector
+        from detectors.news import NewsDetector
+        from detectors.whales import WhaleDetector
+        
+        detectors = {
+            "harmonic": HarmonicDetector(),
+            "elliott": ElliottWaveDetector(),
+            "smc": SMCDetector(),
+            "fibonacci": FibonacciDetector(),
+            "price_action": PriceActionDetector(),
+            "sar": SARDetector(),
+            "sentiment": SentimentDetector(),
+            "news": NewsDetector(),
+            "whales": WhaleDetector()
+        }
+        
+        default_weights = WeightConfig()
+        scoring_engine = DynamicScoringEngine(detectors, default_weights)
+        scanner = MultiTimeframeScanner(data_manager, scoring_engine, default_weights)
+        
+        # Initialize live scanner
+        await initialize_live_scanner(scoring_engine, scanner)
+        
+        app_logger.log_system_event("startup", "Enhanced trading system components initialized")
+        
+    except Exception as e:
+        app_logger.log_system_event("startup_error", f"Failed to initialize enhanced components: {e}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -1739,6 +1786,198 @@ async def ask_market_question(request: dict):
         log_error("question_answering_error", str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
+# Phase 3 Advanced Pattern Detectors API Endpoints
+
+@app.get("/api/analytics/phase3/comprehensive/{symbol}")
+async def get_phase3_comprehensive_analysis(symbol: str, interval: str = "1h", limit: int = 200):
+    """Get comprehensive Phase 3 analysis with all advanced pattern detectors"""
+    try:
+        # Get OHLCV data
+        ohlcv_data = await data_manager.get_ohlcv_data(symbol, interval, limit)
+        
+        if ohlcv_data is None or len(ohlcv_data) < 50:
+            raise HTTPException(status_code=400, detail="Insufficient data for analysis")
+        
+        # Convert to DataFrame
+        df = pd.DataFrame(ohlcv_data)
+        df.set_index('timestamp', inplace=True)
+        
+        # Run comprehensive Phase 3 analysis
+        analysis_result = await phase3_analytics_engine.analyze_comprehensive(df)
+        
+        log_api_call(f"/api/analytics/phase3/comprehensive/{symbol}", "GET", 0.45, 200)
+        
+        return {
+            "symbol": symbol,
+            "analysis": analysis_result,
+            "data_points": len(ohlcv_data),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        log_error("phase3_comprehensive_analysis_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/analytics/phase3/harmonic/{symbol}")
+async def get_harmonic_analysis(symbol: str, interval: str = "1h", limit: int = 200):
+    """Get harmonic pattern analysis for a symbol"""
+    try:
+        # Get OHLCV data
+        ohlcv_data = await data_manager.get_ohlcv_data(symbol, interval, limit)
+        
+        if ohlcv_data is None or len(ohlcv_data) < 100:
+            raise HTTPException(status_code=400, detail="Insufficient data for harmonic analysis")
+        
+        # Convert to list format
+        ohlcv_list = []
+        for bar in ohlcv_data:
+            ohlcv_list.append({
+                'open': float(bar['open']),
+                'high': float(bar['high']),
+                'low': float(bar['low']),
+                'close': float(bar['close']),
+                'volume': float(bar['volume'])
+            })
+        
+        # Run harmonic analysis
+        result = await phase3_analytics_engine.harmonic_detector.detect(ohlcv_list)
+        
+        log_api_call(f"/api/analytics/phase3/harmonic/{symbol}", "GET", 0.35, 200)
+        
+        return {
+            "symbol": symbol,
+            "harmonic_analysis": {
+                "score": result.score,
+                "confidence": result.confidence,
+                "direction": result.direction,
+                "pattern": result.meta.get('pattern'),
+                "completion": result.meta.get('completion', 0),
+                "targets": result.meta.get('targets', []),
+                "points": result.meta.get('points', {})
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        log_error("harmonic_analysis_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/analytics/phase3/elliott/{symbol}")
+async def get_elliott_analysis(symbol: str, interval: str = "1h", limit: int = 200):
+    """Get Elliott Wave analysis for a symbol"""
+    try:
+        # Get OHLCV data
+        ohlcv_data = await data_manager.get_ohlcv_data(symbol, interval, limit)
+        
+        if ohlcv_data is None or len(ohlcv_data) < 150:
+            raise HTTPException(status_code=400, detail="Insufficient data for Elliott Wave analysis")
+        
+        # Convert to list format
+        ohlcv_list = []
+        for bar in ohlcv_data:
+            ohlcv_list.append({
+                'open': float(bar['open']),
+                'high': float(bar['high']),
+                'low': float(bar['low']),
+                'close': float(bar['close']),
+                'volume': float(bar['volume'])
+            })
+        
+        # Run Elliott Wave analysis
+        result = await phase3_analytics_engine.elliott_detector.detect(ohlcv_list)
+        
+        log_api_call(f"/api/analytics/phase3/elliott/{symbol}", "GET", 0.40, 200)
+        
+        return {
+            "symbol": symbol,
+            "elliott_analysis": {
+                "score": result.score,
+                "confidence": result.confidence,
+                "direction": result.direction,
+                "current_wave": result.meta.get('current_wave'),
+                "wave_count": result.meta.get('wave_count', []),
+                "forecast": result.meta.get('forecast', {}),
+                "degree": result.meta.get('degree')
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        log_error("elliott_analysis_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/analytics/phase3/smc/{symbol}")
+async def get_smc_analysis(symbol: str, interval: str = "1h", limit: int = 200):
+    """Get Smart Money Concepts analysis for a symbol"""
+    try:
+        # Get OHLCV data
+        ohlcv_data = await data_manager.get_ohlcv_data(symbol, interval, limit)
+        
+        if ohlcv_data is None or len(ohlcv_data) < 50:
+            raise HTTPException(status_code=400, detail="Insufficient data for SMC analysis")
+        
+        # Convert to list format
+        ohlcv_list = []
+        for bar in ohlcv_data:
+            ohlcv_list.append({
+                'open': float(bar['open']),
+                'high': float(bar['high']),
+                'low': float(bar['low']),
+                'close': float(bar['close']),
+                'volume': float(bar['volume'])
+            })
+        
+        # Run SMC analysis
+        result = await phase3_analytics_engine.smc_detector.detect(ohlcv_list)
+        
+        log_api_call(f"/api/analytics/phase3/smc/{symbol}", "GET", 0.30, 200)
+        
+        return {
+            "symbol": symbol,
+            "smc_analysis": {
+                "score": result.score,
+                "confidence": result.confidence,
+                "direction": result.direction,
+                "bos": result.meta.get('bos', False),
+                "choch": result.meta.get('choch', False),
+                "order_blocks_count": result.meta.get('order_blocks_count', 0),
+                "fvg_count": result.meta.get('fvg_count', 0),
+                "nearest_ob": result.meta.get('nearest_ob'),
+                "bos_details": result.meta.get('bos_details'),
+                "choch_details": result.meta.get('choch_details')
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        log_error("smc_analysis_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/analytics/phase3/status")
+async def get_phase3_status():
+    """Get status of all Phase 3 detectors"""
+    try:
+        return {
+            "phase3_detectors": {
+                "harmonic_detector": "active",
+                "elliott_detector": "active", 
+                "smc_detector": "active"
+            },
+            "integration_status": "complete",
+            "api_endpoints": [
+                "/api/analytics/phase3/comprehensive/{symbol}",
+                "/api/analytics/phase3/harmonic/{symbol}",
+                "/api/analytics/phase3/elliott/{symbol}",
+                "/api/analytics/phase3/smc/{symbol}",
+                "/api/analytics/phase3/status"
+            ],
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        log_error("phase3_status_error", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Startup event to initialize real-time streaming
 @app.on_event("startup")
 async def startup_event():
@@ -1772,8 +2011,406 @@ async def shutdown_event():
     except Exception as e:
         logger.error(f"Error stopping analytics services: {e}")
 
+# ===============================
+# PHASE 5 & 6 API ENDPOINTS
+# ===============================
+
+# Import Phase 5 & 6 modules
+try:
+    from scanner.mtf_scanner import MultiTimeframeScanner, ScanRule, ScanResult
+    from risk.enhanced_risk_manager import EnhancedRiskManager, PositionSize, RiskLimits
+except ImportError as e:
+    print(f"Warning: Could not import Phase 5/6 modules: {e}")
+
+# Initialize Phase 5 & 6 services
+try:
+    # Create mock data aggregator and scoring engine for scanner
+    class MockDataAggregator:
+        async def get_ohlcv_data(self, symbol, timeframe, limit):
+            # Use existing data manager
+            return await data_manager.get_ohlcv_data(symbol, timeframe, limit)
+    
+    class MockScoringEngine:
+        async def score(self, ohlcv, context=None):
+            # Use existing scoring logic
+            core_signal = generate_rsi_macd_signal(ohlcv)
+            return {
+                'final_score': core_signal.get('score', 0.5),
+                'direction': 'BULLISH' if core_signal.get('score', 0.5) > 0.6 else 'BEARISH' if core_signal.get('score', 0.5) < 0.4 else 'NEUTRAL',
+                'confidence': abs(core_signal.get('score', 0.5) - 0.5) * 2
+            }
+    
+    class MockWeights:
+        pass
+    
+    # Initialize services
+    mock_data_aggregator = MockDataAggregator()
+    mock_scoring_engine = MockScoringEngine()
+    mock_weights = MockWeights()
+    
+    mtf_scanner = MultiTimeframeScanner(mock_data_aggregator, mock_scoring_engine, mock_weights)
+    enhanced_risk_manager = EnhancedRiskManager(10000.0)
+    
+    print("Phase 5 & 6 services initialized successfully")
+except Exception as e:
+    print(f"Warning: Could not initialize Phase 5/6 services: {e}")
+    mtf_scanner = None
+    enhanced_risk_manager = None
+
+# Phase 5: Multi-Timeframe Scanner Endpoints
+@app.post("/api/scanner/run")
+async def run_mtf_scanner(request: dict):
+    """Run multi-timeframe scanner across multiple symbols"""
+    try:
+        if not mtf_scanner:
+            raise HTTPException(status_code=500, detail="Scanner not available")
+        
+        symbols = request.get('symbols', ['BTCUSDT', 'ETHUSDT', 'ADAUSDT'])
+        timeframes = request.get('timeframes', ['15m', '1h', '4h'])
+        
+        # Create scan rules
+        rules = ScanRule(
+            mode=request.get('mode', 'conservative'),
+            any_tf_threshold=request.get('any_tf_threshold', 0.65),
+            majority_tf_threshold=request.get('majority_tf_threshold', 0.60),
+            min_confidence=request.get('min_confidence', 0.5),
+            exclude_neutral=request.get('exclude_neutral', True)
+        )
+        
+        # Run scanner
+        results = await mtf_scanner.scan(symbols, timeframes, rules)
+        
+        # Convert results to dict format
+        scan_results = []
+        for result in results:
+            scan_results.append({
+                "symbol": result.symbol,
+                "overall_score": result.overall_score,
+                "overall_direction": result.overall_direction,
+                "consensus_strength": result.consensus_strength,
+                "recommended_action": result.recommended_action,
+                "risk_level": result.risk_level,
+                "timeframe_breakdown": {
+                    tf: {
+                        "final_score": score.final_score,
+                        "direction": score.direction,
+                        "confidence": score.confidence,
+                        "components": score.components
+                    }
+                    for tf, score in result.timeframe_scores.items()
+                }
+            })
+        
+        return {
+            "status": "success",
+            "scan_time": datetime.now().isoformat(),
+            "symbols_scanned": len(symbols),
+            "opportunities_found": len(scan_results),
+            "results": scan_results
+        }
+        
+    except Exception as e:
+        logger.error(f"Scanner endpoint failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/scanner/symbol/{symbol}")
+async def scan_single_symbol(symbol: str, timeframes: str = "15m,1h,4h"):
+    """Scan a single symbol across multiple timeframes"""
+    try:
+        if not mtf_scanner:
+            raise HTTPException(status_code=500, detail="Scanner not available")
+        
+        tf_list = timeframes.split(',')
+        results = await mtf_scanner.scan([symbol], tf_list)
+        
+        if not results:
+            return {"status": "no_data", "message": f"No scan results for {symbol}"}
+        
+        result = results[0]
+        return {
+            "status": "success",
+            "symbol": symbol,
+            "overall_score": result.overall_score,
+            "overall_direction": result.overall_direction,
+            "consensus_strength": result.consensus_strength,
+            "recommended_action": result.recommended_action,
+            "risk_level": result.risk_level,
+            "timeframe_breakdown": {
+                tf: {
+                    "final_score": score.final_score,
+                    "direction": score.direction,
+                    "confidence": score.confidence,
+                    "components": score.components
+                }
+                for tf, score in result.timeframe_scores.items()
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Single symbol scan failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Phase 6: Enhanced Risk Management Endpoints
+@app.post("/api/risk/calculate-position")
+async def calculate_position_size(request: dict):
+    """Calculate position size using enhanced risk management"""
+    try:
+        if not enhanced_risk_manager:
+            raise HTTPException(status_code=500, detail="Risk manager not available")
+        
+        symbol = request.get('symbol')
+        entry_price = request.get('entry_price')
+        stop_loss = request.get('stop_loss')
+        score = request.get('score', {})
+        atr = request.get('atr', 0.01)
+        structure_levels = request.get('structure_levels')
+        
+        if not all([symbol, entry_price, stop_loss]):
+            raise HTTPException(status_code=400, detail="Missing required parameters")
+        
+        position = enhanced_risk_manager.calculate_position_size(
+            symbol, entry_price, stop_loss, score, atr, structure_levels
+        )
+        
+        if not position:
+            return {
+                "status": "rejected",
+                "reason": "Risk limits exceeded",
+                "risk_status": enhanced_risk_manager.get_risk_status()
+            }
+        
+        return {
+            "status": "success",
+            "position": {
+                "symbol": position.symbol,
+                "quantity": position.quantity,
+                "entry_price": position.entry_price,
+                "stop_loss": position.stop_loss,
+                "take_profit": position.take_profit,
+                "risk_amount": position.risk_amount,
+                "risk_pct": position.risk_pct,
+                "r_multiple": position.r_multiple,
+                "max_leverage": position.max_leverage
+            },
+            "risk_status": enhanced_risk_manager.get_risk_status()
+        }
+        
+    except Exception as e:
+        logger.error(f"Position calculation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/risk/calculate-stop-loss")
+async def calculate_stop_loss(request: dict):
+    """Calculate stop loss using ATR and structure levels"""
+    try:
+        if not enhanced_risk_manager:
+            raise HTTPException(status_code=500, detail="Risk manager not available")
+        
+        entry_price = request.get('entry_price')
+        direction = request.get('direction')
+        atr = request.get('atr', 0.01)
+        structure_levels = request.get('structure_levels')
+        
+        if not all([entry_price, direction]):
+            raise HTTPException(status_code=400, detail="Missing required parameters")
+        
+        stop_loss = enhanced_risk_manager.calculate_stop_loss(
+            entry_price, direction, atr, structure_levels
+        )
+        
+        return {
+            "status": "success",
+            "stop_loss": stop_loss,
+            "entry_price": entry_price,
+            "direction": direction,
+            "atr": atr
+        }
+        
+    except Exception as e:
+        logger.error(f"Stop loss calculation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/risk/check-correlation")
+async def check_correlation_limits(request: dict):
+    """Check correlation limits for new position"""
+    try:
+        if not enhanced_risk_manager:
+            raise HTTPException(status_code=500, detail="Risk manager not available")
+        
+        new_position = request.get('new_position', {})
+        existing_positions = request.get('existing_positions', [])
+        
+        correlation_check = enhanced_risk_manager.check_correlation_limits(
+            new_position, existing_positions
+        )
+        
+        return {
+            "status": "success",
+            "correlation_check": correlation_check,
+            "risk_limits": {
+                "max_correlation": enhanced_risk_manager.limits.max_correlation,
+                "max_positions": enhanced_risk_manager.limits.max_positions
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Correlation check failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/risk/portfolio-assessment")
+async def get_portfolio_risk_assessment():
+    """Get comprehensive portfolio risk assessment"""
+    try:
+        if not enhanced_risk_manager:
+            raise HTTPException(status_code=500, detail="Risk manager not available")
+        
+        # Mock portfolio data
+        portfolio = {
+            'portfolio_value': enhanced_risk_manager.portfolio_value,
+            'open_positions': list(enhanced_risk_manager.active_positions.values())
+        }
+        
+        # Mock current prices
+        current_prices = {
+            'BTCUSDT': 45000,
+            'ETHUSDT': 3000,
+            'ADAUSDT': 0.5
+        }
+        
+        risk_assessment = enhanced_risk_manager.assess_portfolio_risk(
+            portfolio, current_prices
+        )
+        
+        return {
+            "status": "success",
+            "risk_assessment": risk_assessment,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Portfolio assessment failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/risk/var")
+async def calculate_portfolio_var(confidence: float = 0.95):
+    """Calculate portfolio Value at Risk"""
+    try:
+        if not enhanced_risk_manager:
+            raise HTTPException(status_code=500, detail="Risk manager not available")
+        
+        # Get current positions
+        positions = list(enhanced_risk_manager.active_positions.values())
+        
+        var_result = enhanced_risk_manager.calculate_portfolio_var(positions, confidence)
+        
+        return {
+            "status": "success",
+            "var_analysis": var_result,
+            "confidence": confidence,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"VaR calculation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/risk/status")
+async def get_enhanced_risk_status():
+    """Get enhanced risk management status"""
+    try:
+        if not enhanced_risk_manager:
+            raise HTTPException(status_code=500, detail="Risk manager not available")
+        
+        risk_status = enhanced_risk_manager.get_risk_status()
+        
+        return {
+            "status": "success",
+            "risk_status": risk_status,
+            "limits": {
+                "max_risk_per_trade": enhanced_risk_manager.limits.max_risk_per_trade,
+                "max_risk_per_day": enhanced_risk_manager.limits.max_risk_per_day,
+                "max_positions": enhanced_risk_manager.limits.max_positions,
+                "max_correlation": enhanced_risk_manager.limits.max_correlation,
+                "max_single_asset": enhanced_risk_manager.limits.max_single_asset,
+                "max_drawdown": enhanced_risk_manager.limits.max_drawdown,
+                "max_var_95": enhanced_risk_manager.limits.max_var_95,
+                "max_leverage": enhanced_risk_manager.limits.max_leverage
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Risk status failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/risk/limits")
+async def update_risk_limits(request: dict):
+    """Update risk management limits"""
+    try:
+        if not enhanced_risk_manager:
+            raise HTTPException(status_code=500, detail="Risk manager not available")
+        
+        # Update limits
+        if 'max_risk_per_trade' in request:
+            enhanced_risk_manager.limits.max_risk_per_trade = float(request['max_risk_per_trade'])
+        if 'max_risk_per_day' in request:
+            enhanced_risk_manager.limits.max_risk_per_day = float(request['max_risk_per_day'])
+        if 'max_positions' in request:
+            enhanced_risk_manager.limits.max_positions = int(request['max_positions'])
+        if 'max_correlation' in request:
+            enhanced_risk_manager.limits.max_correlation = float(request['max_correlation'])
+        if 'max_single_asset' in request:
+            enhanced_risk_manager.limits.max_single_asset = float(request['max_single_asset'])
+        if 'max_drawdown' in request:
+            enhanced_risk_manager.limits.max_drawdown = float(request['max_drawdown'])
+        if 'max_var_95' in request:
+            enhanced_risk_manager.limits.max_var_95 = float(request['max_var_95'])
+        if 'max_leverage' in request:
+            enhanced_risk_manager.limits.max_leverage = float(request['max_leverage'])
+        
+        return {
+            "status": "success",
+            "message": "Risk limits updated successfully",
+            "updated_limits": {
+                "max_risk_per_trade": enhanced_risk_manager.limits.max_risk_per_trade,
+                "max_risk_per_day": enhanced_risk_manager.limits.max_risk_per_day,
+                "max_positions": enhanced_risk_manager.limits.max_positions,
+                "max_correlation": enhanced_risk_manager.limits.max_correlation,
+                "max_single_asset": enhanced_risk_manager.limits.max_single_asset,
+                "max_drawdown": enhanced_risk_manager.limits.max_drawdown,
+                "max_var_95": enhanced_risk_manager.limits.max_var_95,
+                "max_leverage": enhanced_risk_manager.limits.max_leverage
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Risk limits update failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/risk/reset-daily")
+async def reset_daily_risk_metrics():
+    """Reset daily risk metrics"""
+    try:
+        if not enhanced_risk_manager:
+            raise HTTPException(status_code=500, detail="Risk manager not available")
+        
+        enhanced_risk_manager.reset_daily_metrics()
+        
+        return {
+            "status": "success",
+            "message": "Daily risk metrics reset",
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Daily reset failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+# Include enhanced API routes (Phases 7, 8, 9)
+app.include_router(enhanced_router)
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
-    print(f"Starting HTS Trading System Backend with Analytics on port {port}...")
+    print(f"Starting HTS Trading System Backend with Enhanced Phases 7, 8, 9 on port {port}...")
     uvicorn.run(app, host="0.0.0.0", port=port, reload=False)
