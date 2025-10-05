@@ -689,4 +689,4 @@ const PnLDashboard: React.FC = () => {
   );
 };
 
-export default BacktestPanel;
+export default PnLDashboard;

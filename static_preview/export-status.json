@@ -1,0 +1,15 @@
+{
+  "capturedRoutes": [
+    "#/dashboard",
+    "#/scanner",
+    "#/portfolio",
+    "#/training",
+    "#/backtest",
+    "#/watchlist",
+    "#/settings",
+    "#/ai"
+  ],
+  "failedRoutes": [],
+  "totalRoutes": 8,
+  "timestamp": "2025-10-05T17:43:21.378Z"
+}

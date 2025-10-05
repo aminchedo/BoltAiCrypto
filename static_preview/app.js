@@ -1,0 +1,1 @@
+(function(){var s=Array.from(document.querySelectorAll('main section'));function show(h){if(!h)h='#/dashboard';s.forEach(x=>{x.style.display=(x.dataset.route===h)?'block':'none'});}window.addEventListener('hashchange',function(){show(location.hash)});show(location.hash);})();
