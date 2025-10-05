@@ -1,33 +1,37 @@
 """
 Complete API Configuration with 40 Endpoints and Automatic Fallback System
-Hardcoded API keys for immediate functionality
+Uses environment variables for API keys - secure configuration
 """
+import os
 
-# Hardcoded API Keys for immediate functionality
-HARDCODED_API_KEYS = {
-    # Block Explorer APIs
-    "TRONSCAN_KEY": "7ae72726-bffe-4e74-9c33-97b761eeea21",
-    "BSCSCAN_KEY": "K62RKHGXTDCG53RU4MCG6XABIMJKTN19IT", 
-    "ETHERSCAN_KEY": "SZHYFZK2RR8H9TIMJBVW54V4H81K2Z2KR2",
-    "ETHERSCAN_KEY_2": "T6IR8VJHX2NE6ZJW2S3FDVN1TYG4PYYI45",
-    
-    # Market Data APIs
-    "COINMARKETCAP_KEY": "b54bcf4d-1bca-4e8e-9a24-22ff2c3d462c",
-    "COINMARKETCAP_KEY_2": "04cf4b5b-9868-465c-8ba0-9f2e78c92eb1",
-    "CRYPTOCOMPARE_KEY": "e79c8e6d4c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f",
-    
-    # News APIs  
-    "NEWSAPI_KEY": "pub_346789abc123def456789ghi012345jkl",
-}
+# API Keys from environment variables
+def get_api_keys():
+    return {
+        # Block Explorer APIs
+        "TRONSCAN_KEY": os.getenv("TRONSCAN_API_KEY", ""),
+        "BSCSCAN_KEY": os.getenv("BSCSCAN_API_KEY", ""), 
+        "ETHERSCAN_KEY": os.getenv("ETHERSCAN_API_KEY", ""),
+        "ETHERSCAN_KEY_2": os.getenv("ETHERSCAN_API_KEY_2", ""),
+        
+        # Market Data APIs
+        "COINMARKETCAP_KEY": os.getenv("COINMARKETCAP_API_KEY", ""),
+        "COINMARKETCAP_KEY_2": os.getenv("COINMARKETCAP_API_KEY_2", ""),
+        "CRYPTOCOMPARE_KEY": os.getenv("CRYPTOCOMPARE_API_KEY", ""),
+        
+        # News APIs  
+        "NEWSAPI_KEY": os.getenv("NEWSAPI_KEY", ""),
+    }
 
 # Complete API Configuration - 40 Endpoints with Fallbacks
-API_CONFIG = {
+def get_api_config():
+    api_keys = get_api_keys()
+    return {
     # 1. Block Explorer APIs (11 endpoints)
     "tronscan": {
         "primary": {
             "name": "tronscan",
             "url": "https://api.tronscan.org/api",
-            "key": HARDCODED_API_KEYS["TRONSCAN_KEY"],
+            "key": api_keys["TRONSCAN_KEY"],
             "timeout": 10,
             "rate_limit": 100
         },
@@ -41,7 +45,7 @@ API_CONFIG = {
         "primary": {
             "name": "bscscan",
             "url": "https://api.bscscan.com/api",
-            "key": HARDCODED_API_KEYS["BSCSCAN_KEY"],
+            "key": api_keys["BSCSCAN_KEY"],
             "timeout": 10,
             "rate_limit": 200
         },
@@ -55,12 +59,12 @@ API_CONFIG = {
         "primary": {
             "name": "etherscan",
             "url": "https://api.etherscan.io/api",
-            "key": HARDCODED_API_KEYS["ETHERSCAN_KEY"],
+            "key": api_keys["ETHERSCAN_KEY"],
             "timeout": 10,
             "rate_limit": 200
         },
         "fallbacks": [
-            {"name": "etherscan_2", "url": "https://api.etherscan.io/api", "key": HARDCODED_API_KEYS["ETHERSCAN_KEY_2"], "timeout": 10},
+            {"name": "etherscan_2", "url": "https://api.etherscan.io/api", "key": api_keys["ETHERSCAN_KEY_2"], "timeout": 10},
             {"name": "infura", "url": "https://mainnet.infura.io/v3", "key": "", "timeout": 15},
             {"name": "alchemy", "url": "https://eth-mainnet.alchemyapi.io/v2", "key": "", "timeout": 15},
             {"name": "covalent", "url": "https://api.covalenthq.com/v1/1", "key": "", "timeout": 20}
@@ -84,12 +88,12 @@ API_CONFIG = {
         "primary": {
             "name": "coinmarketcap",
             "url": "https://pro-api.coinmarketcap.com/v1",
-            "key": HARDCODED_API_KEYS["COINMARKETCAP_KEY"],
+            "key": api_keys["COINMARKETCAP_KEY"],
             "timeout": 10,
             "rate_limit": 333
         },
         "fallbacks": [
-            {"name": "coinmarketcap_2", "url": "https://pro-api.coinmarketcap.com/v1", "key": HARDCODED_API_KEYS["COINMARKETCAP_KEY_2"], "timeout": 10},
+            {"name": "coinmarketcap_2", "url": "https://pro-api.coinmarketcap.com/v1", "key": api_keys["COINMARKETCAP_KEY_2"], "timeout": 10},
             {"name": "coingecko", "url": "https://api.coingecko.com/api/v3", "key": "", "timeout": 15},
             {"name": "nomics", "url": "https://api.nomics.com/v1", "key": "", "timeout": 15},
             {"name": "messari", "url": "https://data.messari.io/api/v1", "key": "", "timeout": 20}
@@ -100,7 +104,7 @@ API_CONFIG = {
         "primary": {
             "name": "cryptocompare",
             "url": "https://min-api.cryptocompare.com/data",
-            "key": HARDCODED_API_KEYS["CRYPTOCOMPARE_KEY"],
+            "key": api_keys["CRYPTOCOMPARE_KEY"],
             "timeout": 10,
             "rate_limit": 100
         },
@@ -115,7 +119,7 @@ API_CONFIG = {
         "primary": {
             "name": "newsapi",
             "url": "https://newsapi.org/v2",
-            "key": HARDCODED_API_KEYS["NEWSAPI_KEY"],
+            "key": api_keys["NEWSAPI_KEY"],
             "timeout": 15,
             "rate_limit": 1000
         },
@@ -174,8 +178,11 @@ API_CONFIG = {
     # 7. Social Media (1 endpoint)
     "social": {
         "reddit": {"name": "reddit", "url": "https://www.reddit.com", "key": "", "timeout": 15}
+        }
     }
-}
+
+# Initialize the configuration
+API_CONFIG = get_api_config()
 
 # API Health Status Tracking
 API_HEALTH_STATUS = {

@@ -39,5 +39,29 @@ export const api = {
   patch: <T = unknown>(path: string, body?: unknown, init?: RequestInit) =>
     request<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined, ...(init || {}) }),
   delete: <T = unknown>(path: string, init?: RequestInit) => request<T>(path, { method: 'DELETE', ...(init || {}) }),
-  baseUrl: getBaseUrl
+  baseUrl: getBaseUrl,
+
+  // Extended methods for compatibility
+  login: async (username: string, password: string) => {
+    const response = await request<{ access_token: string; user: any }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password })
+    });
+    if (response.access_token) {
+      localStorage.setItem('auth_token', response.access_token);
+    }
+    return response;
+  },
+
+  logout: () => {
+    localStorage.removeItem('auth_token');
+    return Promise.resolve();
+  },
+
+  getCurrentUser: () => request<any>('/auth/me'),
+  
+  getSettings: () => request<any>('/api/settings'),
 };
+
+// Export as apiService for backwards compatibility with existing components
+export const apiService = api;

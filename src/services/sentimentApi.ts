@@ -6,8 +6,8 @@ export class SentimentAPI {
   };
 
   private keys = {
-    coinMarketCap: 'b54bcf4d-1bca-4e8e-9a24-22ff2c3d462c',
-    cryptoCompare: 'e79c8e6d4c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f'
+    coinMarketCap: import.meta.env.VITE_COINMARKETCAP_API_KEY || '',
+    cryptoCompare: import.meta.env.VITE_CRYPTOCOMPARE_API_KEY || ''
   };
 
   async getFearGreedIndex(): Promise<any> {

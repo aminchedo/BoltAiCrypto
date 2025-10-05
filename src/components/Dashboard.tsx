@@ -12,7 +12,12 @@ import { binanceApi } from '../services/binanceApi';
 import { Activity, Wifi, WifiOff, RefreshCw, BarChart3, Zap, TrendingUp, PieChart, DollarSign, TestTube, Settings, MessageSquare, Brain } from 'lucide-react';
 import clsx from 'clsx';
 
-const Dashboard: React.FC = () => {
+interface DashboardProps {
+  user: any;
+  onLogout: () => void;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [signals, setSignals] = useState<TradingSignal[]>([]);
   const [marketData, setMarketData] = useState<MarketData[]>([]);
   const [chartData, setChartData] = useState<OHLCVData[]>([]);
