@@ -13,6 +13,29 @@ function getBaseUrl() {
   return normalizeBaseUrl(origin);
 }
 
+/**
+ * Sleep utility for retry backoff
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Check if error is retryable (network errors or 5xx server errors)
+ */
+function isRetryableError(error: any): boolean {
+  if (error.message?.includes('Failed to fetch') || error.message?.includes('Network')) {
+    return true;
+  }
+  if (error.message?.includes('HTTP 5')) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Core request function (single attempt)
+ */
 async function request<T = unknown>(path: string, options: RequestInit = {}) {
   const base = getBaseUrl();
   const url = path.startsWith('/') ? base + path : base + '/' + path;
@@ -30,20 +53,54 @@ async function request<T = unknown>(path: string, options: RequestInit = {}) {
   return (await res.text()) as unknown as T;
 }
 
+/**
+ * Request with retry logic (2 attempts, exponential backoff)
+ */
+async function requestWithRetry<T = unknown>(path: string, options: RequestInit = {}, maxRetries = 2): Promise<T> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await request<T>(path, options);
+    } catch (error) {
+      lastError = error as Error;
+      
+      // If it's not a retryable error, throw immediately
+      if (!isRetryableError(error)) {
+        throw error;
+      }
+      
+      // If this was the last attempt, throw the error
+      if (attempt === maxRetries - 1) {
+        throw error;
+      }
+      
+      // Exponential backoff: 500ms, 1000ms
+      const backoffMs = 500 * (attempt + 1);
+      console.warn(`Request failed (attempt ${attempt + 1}/${maxRetries}), retrying in ${backoffMs}ms...`, error);
+      await sleep(backoffMs);
+    }
+  }
+  
+  throw lastError || new Error('Request failed after retries');
+}
+
 export const api = {
-  get: <T = unknown>(path: string, init?: RequestInit) => request<T>(path, { method: 'GET', ...(init || {}) }),
+  get: <T = unknown>(path: string, init?: RequestInit) => 
+    requestWithRetry<T>(path, { method: 'GET', ...(init || {}) }),
   post: <T = unknown>(path: string, body?: unknown, init?: RequestInit) =>
-    request<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined, ...(init || {}) }),
+    requestWithRetry<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined, ...(init || {}) }),
   put: <T = unknown>(path: string, body?: unknown, init?: RequestInit) =>
-    request<T>(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined, ...(init || {}) }),
+    requestWithRetry<T>(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined, ...(init || {}) }),
   patch: <T = unknown>(path: string, body?: unknown, init?: RequestInit) =>
-    request<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined, ...(init || {}) }),
-  delete: <T = unknown>(path: string, init?: RequestInit) => request<T>(path, { method: 'DELETE', ...(init || {}) }),
+    requestWithRetry<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined, ...(init || {}) }),
+  delete: <T = unknown>(path: string, init?: RequestInit) => 
+    requestWithRetry<T>(path, { method: 'DELETE', ...(init || {}) }),
   baseUrl: getBaseUrl,
 
   // Extended methods for compatibility
   login: async (username: string, password: string) => {
-    const response = await request<{ access_token: string; user: any }>('/auth/login', {
+    const response = await requestWithRetry<{ access_token: string; user: any }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ username, password })
     });
@@ -58,9 +115,41 @@ export const api = {
     return Promise.resolve();
   },
 
-  getCurrentUser: () => request<any>('/auth/me'),
+  getCurrentUser: () => requestWithRetry<any>('/auth/me'),
   
-  getSettings: () => request<any>('/api/settings'),
+  getSettings: () => requestWithRetry<any>('/api/settings'),
+
+  // Crypto Data Aggregation API - All free/demo providers
+  crypto: {
+    // Summary endpoint - aggregates all data
+    summary: (ids = "bitcoin,ethereum,binancecoin", newsLimit = 20, whaleMinUsd = 500000) =>
+      requestWithRetry<any>(`/api/summary?ids=${encodeURIComponent(ids)}&news_limit=${newsLimit}&whale_min_usd=${whaleMinUsd}`),
+
+    // Market endpoints
+    marketGlobal: () => requestWithRetry<any>('/api/market/global'),
+    prices: (ids: string) => requestWithRetry<any>(`/api/market/prices?ids=${encodeURIComponent(ids)}`),
+    paprikaTickers: (limit = 15) => requestWithRetry<any>(`/api/market/paprika/tickers?limit=${limit}`),
+    coinbaseStats: () => requestWithRetry<any>('/api/exchange/coinbase/stats'),
+
+    // Sentiment endpoint
+    fng: () => requestWithRetry<any>('/api/sentiment/fng'),
+
+    // News endpoints
+    newsCryptoPanic: () => requestWithRetry<any>('/api/news/cryptopanic'),
+    newsCryptoCompare: () => requestWithRetry<any>('/api/news/cryptocompare'),
+    newsCryptoNews: () => requestWithRetry<any>('/api/news/cryptonews'),
+    newsRss: () => requestWithRetry<any>('/api/news/rss'),
+
+    // Whales & On-chain endpoints
+    whalesBtc: () => requestWithRetry<any>('/api/whales/btc'),
+    whalesAlert: (minValueUsd = 500000) => requestWithRetry<any>(`/api/whales/alert?min_value_usd=${minValueUsd}`),
+    btcTx: (txHash: string) => requestWithRetry<any>(`/api/onchain/btc/tx/${encodeURIComponent(txHash)}`),
+
+    // DeFi endpoints
+    defiLlamaProtocols: () => requestWithRetry<any>('/api/defi/llama/protocols'),
+    defiLlamaOverview: () => requestWithRetry<any>('/api/defi/llama/overview'),
+    defipulseDemo: () => requestWithRetry<any>('/api/defi/defipulse/demo'),
+  },
 };
 
 // Export as apiService for backwards compatibility with existing components
