@@ -13,7 +13,10 @@
     "backend:dev": "cd backend && python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000",
     "dev": "concurrently -k -n WEB,API -c auto \"npm:frontend:dev\" \"npm:backend:dev\"",
     "build": "npm run frontend:build",
-    "preview": "npm run frontend:preview"
+    "preview": "npm run frontend:preview",
+    "smoke:be": "curl -s http://localhost:8000/health || curl -s http://localhost:8000/api/health || true",
+    "smoke:markets": "curl -s http://localhost:8000/api/markets | head -200 || true",
+    "smoke:signals": "curl -s http://localhost:8000/api/signals | head -200 || true"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.6",
