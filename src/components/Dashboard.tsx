@@ -5,7 +5,7 @@ import RiskPanel from './RiskPanel';
 import PortfolioPanel from './PortfolioPanel';
 import BacktestPanel from './BacktestPanel';
 import PnLDashboard from './PnLDashboard';
-import PredictiveAnalyticsDashboard from './PredictiveAnalyticsDashboard';
+// import PredictiveAnalyticsDashboard from './PredictiveAnalyticsDashboard'; // Temporarily disabled - missing framer-motion dependency
 import WSBadge from './WSBadge';
 import MarketScanner from './MarketScanner';
 import Scanner from '../pages/Scanner';
@@ -14,11 +14,14 @@ import StrategyBuilder from './StrategyBuilder';
 import { TradingSignal, MarketData, OHLCVData } from '../types';
 import { tradingEngine } from '../services/tradingEngine';
 import { binanceApi } from '../services/binanceApi';
-import { Activity, RefreshCw, BarChart3, Zap, TrendingUp, PieChart, DollarSign, TestTube, MessageSquare, Brain, Search, Sliders } from 'lucide-react';
+import { api } from '../services/api';
+import { Activity, RefreshCw, Zap, TrendingUp, PieChart, DollarSign, TestTube, MessageSquare, Brain, Search, Sliders } from 'lucide-react';
 import clsx from 'clsx';
 
 interface DashboardProps {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   user?: any;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onLogout?: () => void;
 }
 
@@ -27,9 +30,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [marketData, setMarketData] = useState<MarketData[]>([]);
   const [chartData, setChartData] = useState<OHLCVData[]>([]);
   const [selectedSymbol, setSelectedSymbol] = useState<string>('BTCUSDT');
-  const [isConnected, setIsConnected] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [systemHealth, setSystemHealth] = useState<any>({ status: 'healthy' });
   const [activeTab, setActiveTab] = useState<string>('scanner2'); // Use new comprehensive scanner by default
   const [apiHealthData, setApiHealthData] = useState<any>(null);
   const [detailedAnalysis, setDetailedAnalysis] = useState<any>(null);
@@ -74,10 +75,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       const promises = symbols.map(symbol => binanceApi.get24hrTicker(symbol));
       const results = await Promise.all(promises);
       setMarketData(results);
-      setIsConnected(true);
     } catch (error) {
       console.error('Failed to update market data:', error);
-      setIsConnected(false);
     }
   };
 
@@ -123,16 +122,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     try {
       // Simple health check by testing API connectivity
       await binanceApi.getTickerPrice('BTCUSDT');
-      setSystemHealth({ status: 'healthy', timestamp: new Date() });
     } catch (error) {
-      setSystemHealth({ status: 'error', timestamp: new Date() });
+      console.error('Health check failed:', error);
     }
   };
 
   const loadApiHealth = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/health/all-apis');
-      const healthData = await response.json();
+      const healthData = await api.get('/api/health/all-apis');
       setApiHealthData(healthData);
     } catch (error) {
       console.error('Failed to load API health:', error);
@@ -473,7 +470,12 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
 
           {activeTab === 'analytics' && (
             <div className="col-span-12">
-              <PredictiveAnalyticsDashboard />
+              <div className="bg-gray-800/30 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
+                <div className="text-center text-gray-400 py-12">
+                  <p className="text-lg">تحلیل پیشرفته موقتاً غیرفعال است</p>
+                  <p className="text-sm mt-2">در حال حاضر این بخش در دسترس نیست</p>
+                </div>
+              </div>
             </div>
           )}
 

@@ -2,7 +2,7 @@ import React from 'react';
 import { List, Grid3x3, LineChart, ArrowUpDown, Filter, Search, X, GitCompare } from 'lucide-react';
 import { ViewMode, SortField, DirectionFilter } from '../../pages/Scanner';
 import { formatDistanceToNow } from 'date-fns';
-import { fa } from 'date-fns/locale';
+// import { fa } from 'date-fns/locale'; // fa locale not available in date-fns
 
 interface ResultsHeaderProps {
   resultsCount: number;
@@ -67,7 +67,7 @@ const ResultsHeader: React.FC<ResultsHeaderProps> = ({
           </h3>
           {scanTime && (
             <span className="text-xs text-slate-400">
-              {formatDistanceToNow(new Date(scanTime), { addSuffix: true, locale: fa })}
+              {formatDistanceToNow(new Date(scanTime), { addSuffix: true })}
             </span>
           )}
         </div>
