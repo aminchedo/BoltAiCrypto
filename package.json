@@ -1,21 +1,39 @@
 {
-  "name": "boltai-crypto-dev",
+  "name": "hts-trading-system",
   "private": true,
   "version": "0.1.0",
   "engines": {
     "node": ">=18"
   },
   "scripts": {
-    "frontend:dev": "vite",
+    "frontend:dev": "vite --mode development",
     "frontend:build": "tsc -b && vite build",
     "frontend:preview": "vite preview --port 5173",
-    "backend:dev": "python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000",
-    "dev": "concurrently -k -n FRONT,BACK -c auto \"npm:frontend:dev\" \"npm:backend:dev\""
+    "backend:dev": "cd backend && python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000",
+    "dev": "concurrently -k -n FRONT,BACK -c auto \"npm:frontend:dev\" \"npm:backend:dev\"",
+    "build": "npm run frontend:build",
+    "preview": "npm run frontend:preview"
+  },
+  "dependencies": {
+    "chart.js": "^4.5.0",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "lucide-react": "^0.462.0",
+    "react": "^18.3.1",
+    "react-chartjs-2": "^5.3.0",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.12.7"
   },
   "devDependencies": {
+    "@types/node": "^22.7.4",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "autoprefixer": "^10.4.20",
     "concurrently": "^9.0.0",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
     "typescript": "^5.6.3",
-    "vite": "^5.4.8",
-    "@types/node": "^22.7.4"
+    "vite": "^5.4.8"
   }
 }

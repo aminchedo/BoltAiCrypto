@@ -22,4 +22,16 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment files
 .env
+.env.local
+backend/.env
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+
+# Backups
+*.backup
