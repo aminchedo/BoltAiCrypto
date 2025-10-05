@@ -8,6 +8,7 @@ import PnLDashboard from './PnLDashboard';
 import PredictiveAnalyticsDashboard from './PredictiveAnalyticsDashboard';
 import WSBadge from './WSBadge';
 import MarketScanner from './MarketScanner';
+import Scanner from '../pages/Scanner';
 import SignalDetails from './SignalDetails';
 import StrategyBuilder from './StrategyBuilder';
 import { TradingSignal, MarketData, OHLCVData } from '../types';
@@ -29,7 +30,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [isConnected, setIsConnected] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [systemHealth, setSystemHealth] = useState<any>({ status: 'healthy' });
-  const [activeTab, setActiveTab] = useState<string>('scanner');
+  const [activeTab, setActiveTab] = useState<string>('scanner2'); // Use new comprehensive scanner by default
   const [apiHealthData, setApiHealthData] = useState<any>(null);
   const [detailedAnalysis, setDetailedAnalysis] = useState<any>(null);
   const [selectedSymbolForDetails, setSelectedSymbolForDetails] = useState<string | null>(null);
@@ -255,7 +256,8 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
         <div className="mb-6">
           <div className="flex space-x-1 bg-gray-800/30 backdrop-blur-lg rounded-xl p-1 border border-gray-700/50 overflow-x-auto">
             {[
-              { id: 'scanner', label: 'اسکنر بازار', icon: Search },
+              { id: 'scanner2', label: '🔍 اسکنر جامع', icon: Search },
+              { id: 'scanner', label: 'اسکنر ساده', icon: Search },
               { id: 'strategy', label: 'سازنده استراتژی', icon: Sliders },
               { id: 'signals', label: 'سیگنال‌ها', icon: TrendingUp },
               { id: 'portfolio', label: 'پرتفوی', icon: PieChart },
@@ -283,7 +285,14 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
         </div>
 
         <div className="grid grid-cols-12 gap-8">
-          {/* Market Scanner Tab */}
+          {/* Comprehensive Scanner Tab (New) */}
+          {activeTab === 'scanner2' && (
+            <div className="col-span-12">
+              <Scanner />
+            </div>
+          )}
+          
+          {/* Market Scanner Tab (Simple/Legacy) */}
           {activeTab === 'scanner' && !selectedSymbolForDetails && (
             <div className="col-span-12">
               <MarketScanner 
