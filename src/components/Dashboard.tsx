@@ -9,10 +9,11 @@ import PredictiveAnalyticsDashboard from './PredictiveAnalyticsDashboard';
 import WSBadge from './WSBadge';
 import MarketScanner from './MarketScanner';
 import SignalDetails from './SignalDetails';
+import StrategyBuilder from './StrategyBuilder';
 import { TradingSignal, MarketData, OHLCVData } from '../types';
 import { tradingEngine } from '../services/tradingEngine';
 import { binanceApi } from '../services/binanceApi';
-import { Activity, RefreshCw, BarChart3, Zap, TrendingUp, PieChart, DollarSign, TestTube, MessageSquare, Brain, Search } from 'lucide-react';
+import { Activity, RefreshCw, BarChart3, Zap, TrendingUp, PieChart, DollarSign, TestTube, MessageSquare, Brain, Search, Sliders } from 'lucide-react';
 import clsx from 'clsx';
 
 interface DashboardProps {
@@ -255,6 +256,7 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
           <div className="flex space-x-1 bg-gray-800/30 backdrop-blur-lg rounded-xl p-1 border border-gray-700/50 overflow-x-auto">
             {[
               { id: 'scanner', label: 'اسکنر بازار', icon: Search },
+              { id: 'strategy', label: 'سازنده استراتژی', icon: Sliders },
               { id: 'signals', label: 'سیگنال‌ها', icon: TrendingUp },
               { id: 'portfolio', label: 'پرتفوی', icon: PieChart },
               { id: 'pnl', label: 'تحلیل P&L', icon: DollarSign },
@@ -299,6 +301,13 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
                 symbol={selectedSymbolForDetails}
                 onBack={() => setSelectedSymbolForDetails(null)}
               />
+            </div>
+          )}
+
+          {/* Strategy Builder Tab */}
+          {activeTab === 'strategy' && (
+            <div className="col-span-12">
+              <StrategyBuilder />
             </div>
           )}
 
