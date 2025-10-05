@@ -97,8 +97,21 @@ async def startup_event():
         scoring_engine = DynamicScoringEngine(detectors, default_weights)
         scanner = MultiTimeframeScanner(data_manager, scoring_engine, default_weights)
         
+        # Check if real-time agent should be enabled at startup
+        agent_enabled = os.getenv('REALTIME_AGENT_ENABLED', 'true').lower() == 'true'
+        app.state.agent_enabled = agent_enabled
+        
         # Initialize live scanner
-        await initialize_live_scanner(scoring_engine, scanner)
+        ls = await initialize_live_scanner(scoring_engine, scanner)
+        app.state.live_scanner = ls
+        
+        # Start or stop scanner based on environment variable
+        if agent_enabled:
+            await ls.start()
+            app_logger.log_system_event("startup", "Real-time agent enabled - live scanner started")
+        else:
+            await ls.stop()
+            app_logger.log_system_event("startup", "Real-time agent disabled - live scanner stopped")
         
         app_logger.log_system_event("startup", "Enhanced trading system components initialized")
         

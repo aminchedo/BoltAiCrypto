@@ -1,10 +1,24 @@
 import { useState, useEffect } from 'react';
 import { Eye, Plus, Trash2, GripVertical } from 'lucide-react';
 import { store } from '../../state/store';
+import { subscribeSymbols, getAgentStatus } from '../../services/agent';
 
 export default function Watchlist() {
   const [symbols, setSymbols] = useState<string[]>([]);
   const [newSymbol, setNewSymbol] = useState('');
+
+  // Update subscriptions when symbols change and agent is ON
+  const updateSubscriptions = async (updatedSymbols: string[]) => {
+    try {
+      const status = await getAgentStatus();
+      if (status.enabled && updatedSymbols.length > 0) {
+        await subscribeSymbols(updatedSymbols);
+        console.log('Updated subscriptions:', updatedSymbols);
+      }
+    } catch (error) {
+      console.error('Failed to update subscriptions:', error);
+    }
+  };
 
   useEffect(() => {
     const state = store.getState();
@@ -12,6 +26,8 @@ export default function Watchlist() {
 
     const unsubscribe = store.subscribe((state) => {
       setSymbols(state.symbols);
+      // Auto-update subscriptions when symbols change
+      updateSubscriptions(state.symbols);
     });
 
     return unsubscribe;

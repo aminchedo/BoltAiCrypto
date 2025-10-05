@@ -5,7 +5,7 @@ Agent control endpoints for Real-Time Agent feature
 import logging
 import os
 from typing import Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -40,8 +40,21 @@ class SubscribeRequest(BaseModel):
     symbols: list[str]
 
 
+def _get_live_scanner(request: Request):
+    """Get live scanner instance from app state or imports"""
+    try:
+        from backend.websocket.live_scanner import live_scanner
+        return live_scanner
+    except Exception:
+        try:
+            from websocket.live_scanner import live_scanner
+            return live_scanner
+        except Exception:
+            return getattr(request.app.state, "live_scanner", None)
+
+
 @router.get("/status")
-async def get_agent_status():
+async def get_agent_status(request: Request):
     """
     Get current agent status
     
@@ -49,6 +62,9 @@ async def get_agent_status():
         dict: Current agent state including enabled flag
     """
     try:
+        # Get actual enabled state from app state if available
+        enabled = getattr(request.app.state, "agent_enabled", agent_state.enabled)
+        agent_state.enabled = enabled
         return agent_state.dict()
     except Exception as e:
         logger.exception("Error getting agent status")
@@ -56,27 +72,36 @@ async def get_agent_status():
 
 
 @router.put("/toggle")
-async def toggle_agent(enabled: bool):
+async def toggle_agent(req: ToggleRequest, request: Request):
     """
-    Toggle agent on/off
+    Toggle agent on/off - actually starts/stops the live scanner
     
     Args:
-        enabled: True to enable agent, False to disable
+        req: ToggleRequest with enabled flag
+        request: FastAPI request object
         
     Returns:
         dict: Updated agent state
     """
     try:
-        agent_state.enabled = enabled
+        ls = _get_live_scanner(request)
         
-        # TODO: Start/stop live scanner task accordingly
-        # This would integrate with the live_scanner from websocket.live_scanner
-        if enabled:
-            logger.info("Real-time agent enabled")
-            # await live_scanner.start()
+        if req.enabled:
+            logger.info("Enabling real-time agent - starting live scanner")
+            if ls and hasattr(ls, "start"):
+                await ls.start()
+            else:
+                logger.warning("Live scanner not available to start")
+            agent_state.enabled = True
+            request.app.state.agent_enabled = True
         else:
-            logger.info("Real-time agent disabled")
-            # await live_scanner.stop()
+            logger.info("Disabling real-time agent - stopping live scanner")
+            if ls and hasattr(ls, "stop"):
+                await ls.stop()
+            else:
+                logger.warning("Live scanner not available to stop")
+            agent_state.enabled = False
+            request.app.state.agent_enabled = False
         
         return agent_state.dict()
     except Exception as e:
@@ -84,24 +109,33 @@ async def toggle_agent(enabled: bool):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/subscribe")
-async def subscribe_symbols(request: SubscribeRequest):
+@router.put("/subscribe")
+async def subscribe_symbols(body: SubscribeRequest, request: Request):
     """
     Subscribe to symbols for real-time updates
     
     Args:
-        request: SubscribeRequest with list of symbols
+        body: SubscribeRequest with list of symbols
+        request: FastAPI request object
         
     Returns:
-        dict: Updated agent state with subscribed symbols
+        dict: Updated subscription status
     """
     try:
-        agent_state.subscribed_symbols = request.symbols
-        logger.info(f"Agent subscribed to symbols: {request.symbols}")
+        symbols = body.symbols or []
+        agent_state.subscribed_symbols = symbols
+        request.app.state.subscribed_symbols = symbols
+        logger.info(f"Agent subscribed to {len(symbols)} symbols: {symbols}")
+        
+        # Update live scanner symbols if it's running
+        ls = _get_live_scanner(request)
+        if ls and hasattr(ls, "update_symbols"):
+            ls.update_symbols(symbols)
+            logger.info(f"Live scanner symbols updated")
         
         return {
-            "status": "success",
-            "subscribed_symbols": agent_state.subscribed_symbols
+            "symbols": symbols,
+            "count": len(symbols)
         }
     except Exception as e:
         logger.exception("Error subscribing to symbols")

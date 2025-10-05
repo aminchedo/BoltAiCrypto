@@ -230,6 +230,10 @@ class LiveScanner:
         self.symbols = symbols
         logger.info(f"Updated symbols to scan: {symbols}")
     
+    def set_symbols(self, symbols: List[str]):
+        """Alias for update_symbols - set the list of symbols to scan"""
+        self.update_symbols(symbols)
+    
     def update_scan_interval(self, interval: int):
         """Update scan interval in seconds"""
         self.scan_interval = max(10, interval)  # Minimum 10 seconds
