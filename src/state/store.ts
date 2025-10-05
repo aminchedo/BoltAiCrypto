@@ -216,6 +216,109 @@ class Store {
     };
     this.notifyListeners();
   }
+
+  /**
+   * Load weights from backend
+   */
+  async loadWeightsFromBackend(): Promise<void> {
+    try {
+      const { api } = await import('../services/api');
+      const response = await api.get<{ weights: WeightConfig }>('/api/config/weights');
+      if (response && response.weights) {
+        this.setState({ weights: response.weights });
+      }
+    } catch (error) {
+      console.warn('Failed to load weights from backend:', error);
+    }
+  }
+
+  /**
+   * Save weights to backend
+   */
+  async saveWeightsToBackend(): Promise<void> {
+    try {
+      const { api } = await import('../services/api');
+      await api.post('/api/config/weights', { weights: this.state.weights });
+    } catch (error) {
+      console.warn('Failed to save weights to backend:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Load preset: Aggressive
+   */
+  loadAggressivePreset(): void {
+    this.setState({
+      weights: {
+        harmonic: 0.10,
+        elliott: 0.10,
+        smc: 0.25,
+        fibonacci: 0.10,
+        price_action: 0.20,
+        sar: 0.10,
+        sentiment: 0.05,
+        news: 0.05,
+        whales: 0.05
+      },
+      rules: {
+        any_tf: 0.5,
+        majority_tf: 0.6,
+        mode: 'aggressive'
+      }
+    });
+  }
+
+  /**
+   * Load preset: Conservative
+   */
+  loadConservativePreset(): void {
+    this.setState({
+      weights: {
+        harmonic: 0.20,
+        elliott: 0.20,
+        smc: 0.15,
+        fibonacci: 0.15,
+        price_action: 0.10,
+        sar: 0.10,
+        sentiment: 0.05,
+        news: 0.03,
+        whales: 0.02
+      },
+      rules: {
+        any_tf: 0.7,
+        majority_tf: 0.8,
+        mode: 'conservative'
+      }
+    });
+  }
+
+  /**
+   * Export config as JSON
+   */
+  exportConfig(): string {
+    return JSON.stringify(this.state, null, 2);
+  }
+
+  /**
+   * Import config from JSON
+   */
+  importConfig(json: string): void {
+    try {
+      const parsed = JSON.parse(json);
+      // Validate structure
+      if (parsed.weights && parsed.rules && parsed.symbols && parsed.timeframes) {
+        this.state = parsed;
+        this.persistToLocalStorage();
+        this.notifyListeners();
+      } else {
+        throw new Error('Invalid config structure');
+      }
+    } catch (error) {
+      console.error('Failed to import config:', error);
+      throw error;
+    }
+  }
 }
 
 // Singleton instance

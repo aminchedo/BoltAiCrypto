@@ -141,17 +141,24 @@ export interface ScanResult {
   overall_direction?: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
   direction?: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
   recommended_action?: string;
-  risk_level?: string;
+  risk_level?: number | string; // Can be number (percentage) or string ('LOW', 'MEDIUM', 'HIGH')
   consensus_strength?: number;
   tf_count?: number;
   timeframes?: string[];
   timeframe_scores?: Record<string, CombinedScore>;
+  timeframe_breakdown?: Record<string, {
+    score: number;
+    direction: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
+    [key: string]: any;
+  }>;
   sample_components?: Record<string, {
     raw: any;
     score: number;
     weight: number;
     meta: any;
   }>;
+  price?: number; // Current price
+  confidence?: number; // Overall confidence
 }
 
 export interface ScanRequest {

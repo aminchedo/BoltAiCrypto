@@ -1,22 +1,65 @@
-import React from 'react';
-import { Shield, AlertTriangle, TrendingUp, Activity } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Shield, AlertTriangle, TrendingUp, Activity, RefreshCw } from 'lucide-react';
+import { api } from '../services/api';
 import PositionSizer from './PositionSizer';
 
+interface RiskMetrics {
+  var95: number;
+  leverage: number;
+  concentration: number;
+  sharpeRatio: number;
+  maxDrawdown: number;
+  dailyLoss: number;
+}
+
 const RiskPanel: React.FC = () => {
-  // Mock data - ready to be wired to backend
-  const riskMetrics = {
-    var95: 2500,      // Value at Risk (95%)
-    leverage: 2.5,
-    concentration: 35, // % in largest position
-    sharpeRatio: 1.85,
-    maxDrawdown: 12.5,
-    dailyLoss: 1.2
+  const [riskMetrics, setRiskMetrics] = useState<RiskMetrics>({
+    var95: 0,
+    leverage: 0,
+    concentration: 0,
+    sharpeRatio: 0,
+    maxDrawdown: 0,
+    dailyLoss: 0
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadRiskStatus();
+    const interval = setInterval(loadRiskStatus, 5000); // Refresh every 5s
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadRiskStatus = async () => {
+    try {
+      const data = await api.get<any>('/api/risk/status');
+      setRiskMetrics({
+        var95: data.var_95 || 0,
+        leverage: data.leverage || 0,
+        concentration: data.concentration || 0,
+        sharpeRatio: data.sharpe_ratio || 0,
+        maxDrawdown: data.max_drawdown || 0,
+        dailyLoss: data.daily_loss || 0
+      });
+      setError(null);
+    } catch (err) {
+      console.error('Failed to load risk status:', err);
+      // Keep existing data, just log error
+      setError('Unable to connect to backend');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const isHealthy = riskMetrics.dailyLoss < 3 && riskMetrics.leverage < 3;
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-amber-400 text-sm">
+          ⚠️ {error} - Showing cached data
+        </div>
+      )}
       {/* Risk Status Card */}
       <div className={`bg-gray-800/30 backdrop-blur-lg rounded-2xl p-6 border ${
         isHealthy ? 'border-emerald-500/30' : 'border-amber-500/30'

@@ -1,17 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import SignalCard from './SignalCard';
 import TradingChart from './TradingChart';
 import RiskPanel from './RiskPanel';
 import PortfolioPanel from './PortfolioPanel';
 import BacktestPanel from './BacktestPanel';
 import PnLDashboard from './PnLDashboard';
-// import PredictiveAnalyticsDashboard from './PredictiveAnalyticsDashboard'; // Temporarily disabled - missing framer-motion dependency
 import WSBadge from './WSBadge';
 import MarketScanner from './MarketScanner';
-import Scanner from '../pages/Scanner';
 import SignalDetails from './SignalDetails';
 import StrategyBuilder from './StrategyBuilder';
+import Loading from './Loading';
 import { TradingSignal, MarketData, OHLCVData } from '../types';
+
+// Lazy load heavy components
+const PredictiveAnalyticsDashboard = lazy(() => import('./PredictiveAnalyticsDashboard'));
+const Scanner = lazy(() => import('../pages/Scanner'));
 import { tradingEngine } from '../services/tradingEngine';
 import { binanceApi } from '../services/binanceApi';
 import { api } from '../services/api';
@@ -253,14 +256,13 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
         <div className="mb-6">
           <div className="flex space-x-1 bg-gray-800/30 backdrop-blur-lg rounded-xl p-1 border border-gray-700/50 overflow-x-auto">
             {[
-              { id: 'scanner2', label: '🔍 اسکنر جامع', icon: Search },
-              { id: 'scanner', label: 'اسکنر ساده', icon: Search },
+              { id: 'scanner2', label: '🔍 اسکنر', icon: Search },
+              { id: 'ai-predictions', label: '🧠 هوش مصنوعی و پیش‌بینی', icon: Brain },
+              { id: 'risk-portfolio', label: '⚠️ ریسک و پرتفوی', icon: PieChart },
+              { id: 'backtest', label: '📊 بک‌تست', icon: TestTube },
               { id: 'strategy', label: 'سازنده استراتژی', icon: Sliders },
               { id: 'signals', label: 'سیگنال‌ها', icon: TrendingUp },
-              { id: 'portfolio', label: 'پرتفوی', icon: PieChart },
               { id: 'pnl', label: 'تحلیل P&L', icon: DollarSign },
-              { id: 'backtest', label: 'بک‌تست', icon: TestTube },
-              { id: 'analytics', label: 'تحلیل پیشرفته', icon: Brain },
               { id: 'notifications', label: 'اعلان‌ها', icon: MessageSquare },
               { id: 'apis', label: 'وضعیت API', icon: Activity }
             ].map((tab) => (
@@ -285,7 +287,9 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
           {/* Comprehensive Scanner Tab (New) */}
           {activeTab === 'scanner2' && (
             <div className="col-span-12">
-              <Scanner />
+              <Suspense fallback={<Loading message="در حال بارگذاری اسکنر..." />}>
+                <Scanner />
+              </Suspense>
             </div>
           )}
           
@@ -468,12 +472,24 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
             </div>
           )}
 
-          {activeTab === 'analytics' && (
+          {/* AI & Predictions Tab - PredictiveAnalyticsDashboard */}
+          {activeTab === 'ai-predictions' && (
             <div className="col-span-12">
-              <div className="bg-gray-800/30 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
-                <div className="text-center text-gray-400 py-12">
-                  <p className="text-lg">تحلیل پیشرفته موقتاً غیرفعال است</p>
-                  <p className="text-sm mt-2">در حال حاضر این بخش در دسترس نیست</p>
+              <Suspense fallback={<Loading message="در حال بارگذاری تحلیل‌های هوش مصنوعی..." />}>
+                <PredictiveAnalyticsDashboard />
+              </Suspense>
+            </div>
+          )}
+
+          {/* Risk & Portfolio Tab - Combined View */}
+          {activeTab === 'risk-portfolio' && (
+            <div className="col-span-12">
+              <div className="grid grid-cols-12 gap-6">
+                <div className="col-span-12 lg:col-span-8">
+                  <PortfolioPanel />
+                </div>
+                <div className="col-span-12 lg:col-span-4">
+                  <RiskPanel />
                 </div>
               </div>
             </div>

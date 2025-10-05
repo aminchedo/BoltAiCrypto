@@ -41,7 +41,17 @@ const PortfolioPanel: React.FC = () => {
 
   const loadPortfolioData = async () => {
     try {
-      // Mock data for now - replace with actual API call
+      // Try to load from backend first
+      try {
+        const data = await apiService.get<PortfolioData>('/api/risk/portfolio-assessment');
+        setPortfolioData(data);
+        setIsLoading(false);
+        return;
+      } catch (backendError) {
+        console.warn('Backend not available, using mock data:', backendError);
+      }
+      
+      // Fallback to mock data if backend unavailable
       const mockData: PortfolioData = {
         total_value: 125750.50,
         daily_pnl: 2847.25,
@@ -90,7 +100,6 @@ const PortfolioPanel: React.FC = () => {
       setPortfolioData(mockData);
     } catch (error) {
       console.error('Failed to load portfolio data:', error);
-    } finally {
       setIsLoading(false);
     }
   };
