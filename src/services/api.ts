@@ -118,6 +118,38 @@ export const api = {
   getCurrentUser: () => requestWithRetry<any>('/auth/me'),
   
   getSettings: () => requestWithRetry<any>('/api/settings'),
+
+  // Crypto Data Aggregation API - All free/demo providers
+  crypto: {
+    // Summary endpoint - aggregates all data
+    summary: (ids = "bitcoin,ethereum,binancecoin", newsLimit = 20, whaleMinUsd = 500000) =>
+      requestWithRetry<any>(`/api/summary?ids=${encodeURIComponent(ids)}&news_limit=${newsLimit}&whale_min_usd=${whaleMinUsd}`),
+
+    // Market endpoints
+    marketGlobal: () => requestWithRetry<any>('/api/market/global'),
+    prices: (ids: string) => requestWithRetry<any>(`/api/market/prices?ids=${encodeURIComponent(ids)}`),
+    paprikaTickers: (limit = 15) => requestWithRetry<any>(`/api/market/paprika/tickers?limit=${limit}`),
+    coinbaseStats: () => requestWithRetry<any>('/api/exchange/coinbase/stats'),
+
+    // Sentiment endpoint
+    fng: () => requestWithRetry<any>('/api/sentiment/fng'),
+
+    // News endpoints
+    newsCryptoPanic: () => requestWithRetry<any>('/api/news/cryptopanic'),
+    newsCryptoCompare: () => requestWithRetry<any>('/api/news/cryptocompare'),
+    newsCryptoNews: () => requestWithRetry<any>('/api/news/cryptonews'),
+    newsRss: () => requestWithRetry<any>('/api/news/rss'),
+
+    // Whales & On-chain endpoints
+    whalesBtc: () => requestWithRetry<any>('/api/whales/btc'),
+    whalesAlert: (minValueUsd = 500000) => requestWithRetry<any>(`/api/whales/alert?min_value_usd=${minValueUsd}`),
+    btcTx: (txHash: string) => requestWithRetry<any>(`/api/onchain/btc/tx/${encodeURIComponent(txHash)}`),
+
+    // DeFi endpoints
+    defiLlamaProtocols: () => requestWithRetry<any>('/api/defi/llama/protocols'),
+    defiLlamaOverview: () => requestWithRetry<any>('/api/defi/llama/overview'),
+    defipulseDemo: () => requestWithRetry<any>('/api/defi/defipulse/demo'),
+  },
 };
 
 // Export as apiService for backwards compatibility with existing components

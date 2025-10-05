@@ -6,11 +6,11 @@
     "node": ">=18"
   },
   "scripts": {
-    "frontend:dev": "vite --mode development",
+    "frontend:dev": "vite --port 5173",
     "frontend:build": "tsc -b && vite build",
     "frontend:preview": "vite preview --port 5173",
     "backend:dev": "cd backend && python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000",
-    "dev": "concurrently -k -n FRONT,BACK -c auto \"npm:frontend:dev\" \"npm:backend:dev\"",
+    "dev": "concurrently -k -n WEB,API -c auto \"npm:frontend:dev\" \"npm:backend:dev\"",
     "build": "npm run frontend:build",
     "preview": "npm run frontend:preview"
   },
