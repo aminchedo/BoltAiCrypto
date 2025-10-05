@@ -45,6 +45,9 @@ from websocket.live_scanner import initialize_live_scanner
 # Import Phase 4 scoring system
 from scoring.api import router as scoring_router
 
+# Import crypto data aggregation router
+from routers.data import router as data_router
+
 # Import database components
 from database.connection import get_db, init_db
 from database.models import TradingSession, SignalRecord, TradeRecord, SystemMetrics, RiskLimit
@@ -119,6 +122,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(scoring_router)
+app.include_router(data_router)
 
 # WebSocket connection manager
 class ConnectionManager:
