@@ -27,14 +27,18 @@ import {
   LineChart,
   Sparkles,
   Lightbulb,
-  MessageSquare
+  MessageSquare,
+  Bell,
+  Download
 } from 'lucide-react';
 import clsx from 'clsx';
 import Loading from '../../components/Loading';
 import EnhancedOverview from './EnhancedOverview';
+import AssetSelector from '../../components/AssetSelector';
 import { api } from '../../services/api';
 import { wsClient } from '../../services/wsClient';
 import { store } from '../../state/store';
+import { dimensions, spacing, typography, breakpoints, getRelativeTime } from '../../utils/designTokens';
 
 // Lazy load heavy components for better performance
 const Scanner = lazy(() => import('../Scanner'));
@@ -331,59 +335,79 @@ export default function ComprehensiveDashboard() {
     }
   };
 
+  const handleToggleFavorite = (symbol: string) => {
+    setFavorites(prev =>
+      prev.includes(symbol)
+        ? prev.filter(s => s !== symbol)
+        : [...prev, symbol]
+    );
+  };
+
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden">
       {/* Sidebar */}
       <motion.aside
         initial={false}
-        animate={{ width: sidebarCollapsed ? 80 : 280 }}
+        animate={{ width: sidebarCollapsed ? dimensions.sidebar.collapsed : dimensions.sidebar.expanded }}
         className="bg-slate-800/30 border-r border-white/10 backdrop-blur-xl flex flex-col relative z-10"
+        style={{ minWidth: sidebarCollapsed ? dimensions.sidebar.collapsed : dimensions.sidebar.expanded }}
       >
         {/* Sidebar Header */}
-        <div className="p-4 border-b border-white/10">
+        <div className="border-b border-white/10" style={{ padding: spacing.md }}>
           <div className="flex items-center justify-between">
             {!sidebarCollapsed && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex items-center gap-3"
+                className="flex items-center gap-2"
               >
-                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600">
-                  <Zap className="w-5 h-5 text-white" />
+                <div className="flex items-center justify-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600" 
+                     style={{ width: dimensions.iconSize.lg, height: dimensions.iconSize.lg }}>
+                  <Zap style={{ width: dimensions.iconSize.md, height: dimensions.iconSize.md }} className="text-white" />
                 </div>
                 <div>
-                  <h1 className="text-lg font-bold text-white">HTS</h1>
-                  <p className="text-xs text-slate-400">Pro Trading</p>
+                  <h1 className="font-bold text-white" style={{ fontSize: typography.base }}>HTS Pro</h1>
+                  <p className="text-slate-400" style={{ fontSize: typography.xs }}>Trading System</p>
                 </div>
               </motion.div>
             )}
+            {sidebarCollapsed && (
+              <div className="flex items-center justify-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 mx-auto" 
+                   style={{ width: dimensions.iconSize.lg, height: dimensions.iconSize.lg }}>
+                <Zap style={{ width: dimensions.iconSize.md, height: dimensions.iconSize.md }} className="text-white" />
+              </div>
+            )}
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="p-2 rounded-lg hover:bg-white/10 transition-colors text-slate-400 hover:text-white"
+              className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-slate-400 hover:text-white"
+              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
-              {sidebarCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+              {sidebarCollapsed ? 
+                <ChevronRight style={{ width: dimensions.iconSize.md, height: dimensions.iconSize.md }} /> : 
+                <ChevronLeft style={{ width: dimensions.iconSize.md, height: dimensions.iconSize.md }} />
+              }
             </button>
           </div>
         </div>
 
         {/* Connection Status */}
-        <div className="px-4 py-2 border-b border-white/10">
+        <div className="border-b border-white/10" style={{ padding: `${spacing.sm} ${spacing.md}` }}>
           <div className="flex items-center gap-2">
             <div className={clsx(
-              "w-2 h-2 rounded-full",
+              "w-1.5 h-1.5 rounded-full",
               isConnected ? "bg-green-400 animate-pulse" : "bg-red-400"
             )} />
             {!sidebarCollapsed && (
-              <span className="text-xs text-slate-400">
-                {isConnected ? 'متصل' : 'قطع شده'}
+              <span className="text-slate-400" style={{ fontSize: typography.xs }}>
+                {isConnected ? 'Connected' : 'Disconnected'}
               </span>
             )}
           </div>
         </div>
 
         {/* Navigation Menu */}
-        <nav className="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-600 py-4">
-          <ul className="space-y-1 px-2">
+        <nav className="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-600" style={{ padding: `${spacing.md} ${spacing.sm}` }}>
+          <ul className="space-y-0.5">
             {menuItems.map((item) => (
               <MenuItem
                 key={item.id}
@@ -397,78 +421,108 @@ export default function ComprehensiveDashboard() {
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="p-4 border-t border-white/10">
+        <div className="border-t border-white/10" style={{ padding: spacing.md }}>
           <button
             onClick={() => setActiveView('settings')}
             className={clsx(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200",
+              "w-full flex items-center gap-2 rounded-lg transition-all duration-200",
               activeView === 'settings'
                 ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25"
                 : "text-slate-400 hover:text-white hover:bg-white/10"
             )}
+            style={{ padding: `${spacing.sm} ${spacing.md}` }}
           >
-            <Settings className="w-5 h-5 flex-shrink-0" />
-            {!sidebarCollapsed && <span className="text-sm font-medium">تنظیمات</span>}
+            <Settings style={{ width: dimensions.iconSize.md, height: dimensions.iconSize.md }} className="flex-shrink-0" />
+            {!sidebarCollapsed && <span className="font-medium" style={{ fontSize: typography.sm }}>Settings</span>}
           </button>
         </div>
       </motion.aside>
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Bar */}
-        <header className="bg-slate-800/30 border-b border-white/10 backdrop-blur-xl px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-white">
-                {menuItems.find(m => m.id === activeView)?.label || 'داشبورد'}
-              </h2>
-              <p className="text-sm text-slate-400 mt-1">
-                آخرین بروزرسانی: {lastUpdate.toLocaleTimeString('fa-IR')}
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              {/* Quick Stats */}
-              <div className="flex items-center gap-6 px-6 py-3 bg-slate-700/30 rounded-xl border border-white/10">
-                <div className="flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-cyan-400" />
-                  <span className="text-sm text-slate-300">{stats.totalSignals} سیگنال</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-green-400" />
-                  <span className="text-sm text-slate-300 ltr-numbers">
-                    ${stats.portfolioValue.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Shield className={clsx(
-                    "w-4 h-4",
-                    stats.riskLevel === 'low' ? 'text-green-400' :
-                    stats.riskLevel === 'medium' ? 'text-yellow-400' : 'text-red-400'
-                  )} />
-                  <span className="text-sm text-slate-300 capitalize">{stats.riskLevel}</span>
-                </div>
-              </div>
+        {/* Compact Header ≤64px */}
+        <header 
+          className="bg-slate-800/30 border-b border-white/10 backdrop-blur-xl flex items-center justify-between"
+          style={{ height: dimensions.header.height, paddingLeft: spacing.xl, paddingRight: spacing.xl }}
+        >
+          {/* Left: Brand + Breadcrumb */}
+          <div className="flex items-center gap-3">
+            <h2 className="font-bold text-white" style={{ fontSize: typography.lg }}>
+              {menuItems.find(m => m.id === activeView)?.label || 'Dashboard'}
+            </h2>
+            <span className="text-slate-500">/</span>
+            <span className="text-slate-400" style={{ fontSize: typography.sm }}>
+              {getRelativeTime(lastUpdate)}
+            </span>
+          </div>
 
+          {/* Right: Asset Selector + Actions */}
+          <div className="flex items-center gap-3">
+            {/* Asset Selector */}
+            <AssetSelector
+              selected={selectedSymbol}
+              onSelect={setSelectedSymbol}
+              favorites={favorites}
+              onToggleFavorite={handleToggleFavorite}
+            />
+
+            {/* Quick Actions */}
+            <div className="flex items-center gap-1.5 bg-slate-700/30 rounded-lg border border-white/10" style={{ padding: `${spacing.sm} ${spacing.md}` }}>
+              <button
+                className="p-1.5 rounded-md hover:bg-white/10 transition-colors text-slate-400 hover:text-white"
+                aria-label="Notifications"
+              >
+                <Bell style={{ width: dimensions.iconSize.sm, height: dimensions.iconSize.sm }} />
+              </button>
+              <button
+                className="p-1.5 rounded-md hover:bg-white/10 transition-colors text-slate-400 hover:text-white"
+                aria-label="Export data"
+              >
+                <Download style={{ width: dimensions.iconSize.sm, height: dimensions.iconSize.sm }} />
+              </button>
               <button
                 onClick={loadDashboardStats}
-                className="p-2 rounded-lg hover:bg-white/10 transition-colors text-slate-400 hover:text-white"
+                className="p-1.5 rounded-md hover:bg-white/10 transition-colors text-slate-400 hover:text-white"
+                aria-label="Refresh"
               >
-                <RefreshCw className="w-5 h-5" />
+                <RefreshCw style={{ width: dimensions.iconSize.sm, height: dimensions.iconSize.sm }} />
               </button>
+            </div>
+
+            {/* Status Indicators */}
+            <div className="flex items-center gap-3 bg-slate-700/30 rounded-lg border border-white/10" style={{ padding: `${spacing.sm} ${spacing.md}` }}>
+              <div className="flex items-center gap-1.5">
+                <Activity style={{ width: dimensions.iconSize.sm, height: dimensions.iconSize.sm }} className="text-cyan-400" />
+                <span className="text-slate-300" style={{ fontSize: typography.xs }}>{stats.totalSignals}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <DollarSign style={{ width: dimensions.iconSize.sm, height: dimensions.iconSize.sm }} className="text-green-400" />
+                <span className="text-slate-300 ltr-numbers" style={{ fontSize: typography.xs }}>
+                  ${(stats.portfolioValue / 1000).toFixed(1)}K
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Shield 
+                  style={{ width: dimensions.iconSize.sm, height: dimensions.iconSize.sm }}
+                  className={clsx(
+                    stats.riskLevel === 'low' ? 'text-green-400' :
+                    stats.riskLevel === 'medium' ? 'text-yellow-400' : 'text-red-400'
+                  )} 
+                />
+              </div>
             </div>
           </div>
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-600 p-6">
+        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-600" style={{ padding: spacing.xl }}>
           <AnimatePresence mode="wait">
             <motion.div
               key={activeView}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.2 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.15 }}
               className="h-full"
             >
               {renderContent()}
@@ -508,19 +562,25 @@ function MenuItem({
           }
         }}
         className={clsx(
-          "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group",
+          "w-full flex items-center gap-2 rounded-lg transition-all duration-200 group",
           active
             ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25"
             : "text-slate-400 hover:text-white hover:bg-white/10"
         )}
-        style={{ paddingLeft: `${12 + depth * 16}px` }}
+        style={{ 
+          padding: `${spacing.sm} ${spacing.md}`,
+          paddingLeft: `${parseFloat(spacing.md) * (1 + depth)}rem`
+        }}
       >
-        <item.icon className="w-5 h-5 flex-shrink-0" />
+        <item.icon style={{ width: dimensions.iconSize.md, height: dimensions.iconSize.md }} className="flex-shrink-0" />
         {!collapsed && (
           <>
-            <span className="text-sm font-medium flex-1 text-right">{item.label}</span>
+            <span className="font-medium flex-1 text-right" style={{ fontSize: typography.sm }}>{item.label}</span>
             {item.badge && (
-              <span className="px-2 py-0.5 text-xs font-semibold bg-red-500/20 text-red-400 rounded-full border border-red-500/30">
+              <span 
+                className="px-1.5 py-0.5 font-semibold bg-red-500/20 text-red-400 rounded-full border border-red-500/30"
+                style={{ fontSize: typography.xs }}
+              >
                 {item.badge}
               </span>
             )}
@@ -530,6 +590,23 @@ function MenuItem({
       
       {/* Children */}
       {hasChildren && expanded && !collapsed && (
+        <ul className="mt-0.5 space-y-0.5">
+          {item.children!.map((child) => (
+            <MenuItem
+              key={child.id}
+              item={child}
+              collapsed={collapsed}
+              active={active}
+              onClick={onClick}
+              depth={depth + 1}
+            />
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+ren && expanded && !collapsed && (
         <ul className="mt-1 space-y-1">
           {item.children!.map((child) => (
             <MenuItem
