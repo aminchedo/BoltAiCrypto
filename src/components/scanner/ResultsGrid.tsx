@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, Clock, Activity } from 'lucide-react';
 import { ScanResult } from '../../types';
+import { spacing, typography, radius, dimensions, getRelativeTime } from '../../utils/designTokens';
 
 interface ResultsGridProps {
   data: ScanResult[];
@@ -48,8 +49,10 @@ export default function ResultsGrid({ data, onCardClick }: ResultsGridProps) {
     };
   };
 
+  const [focusedIndex, setFocusedIndex] = useState<number>(-1);
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" role="list" aria-label="Scan results">
       {data.map((result, index) => {
         const score = getScore(result);
         const direction = getDirection(result);
@@ -59,41 +62,56 @@ export default function ResultsGrid({ data, onCardClick }: ResultsGridProps) {
         return (
           <motion.div
             key={`${result.symbol}-${result.timeframe}-${index}`}
-            className="bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 shadow-xl rounded-xl p-6 hover:border-cyan-500/50 transition-all duration-300 cursor-pointer group"
+            className="bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 shadow-xl cursor-pointer group"
+            style={{ borderRadius: radius.xl, padding: spacing.xl }}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3, delay: index * 0.05 }}
             whileHover={{ y: -4, scale: 1.02 }}
             onClick={() => onCardClick?.(result)}
+            onFocus={() => setFocusedIndex(index)}
+            onBlur={() => setFocusedIndex(-1)}
+            tabIndex={0}
+            role="listitem"
+            aria-label={`${result.symbol} signal, score ${score.toFixed(0)}, direction ${direction}`}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onCardClick?.(result);
+              }
+            }}
+            className={`bg-slate-900/80 backdrop-blur-xl border shadow-xl cursor-pointer group transition-all duration-300 ${
+              focusedIndex === index ? 'border-cyan-500/50 ring-2 ring-cyan-500/25' : 'border-slate-700/50 hover:border-cyan-500/50'
+            }`}
           >
             {/* Header */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between" style={{ marginBottom: spacing.lg }}>
               <div>
-                <h3 className="text-xl font-bold text-slate-50 mb-1">{result.symbol}</h3>
+                <h3 style={{ fontSize: typography.xl }} className="font-bold text-slate-50 mb-1">{result.symbol}</h3>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-400">{result.timeframe || 'Multi-TF'}</span>
+                  <span style={{ fontSize: typography.xs }} className="text-slate-400">{result.timeframe || 'Multi-TF'}</span>
                   {result.tf_count && (
-                    <span className="text-xs text-slate-500">•</span>
+                    <span style={{ fontSize: typography.xs }} className="text-slate-500">•</span>
                   )}
                   {result.tf_count && (
-                    <span className="text-xs text-cyan-400">{result.tf_count} TF</span>
+                    <span style={{ fontSize: typography.xs }} className="text-cyan-400">{result.tf_count} TF</span>
                   )}
                 </div>
               </div>
               
-              <div className={`w-12 h-12 rounded-xl ${directionStyle.bg} border ${directionStyle.border} flex items-center justify-center`}>
-                <DirectionIcon className={`w-6 h-6 ${directionStyle.text}`} />
+              <div className={`flex items-center justify-center ${directionStyle.bg} border ${directionStyle.border}`} style={{ width: dimensions.iconSize.xl, height: dimensions.iconSize.xl, borderRadius: radius.xl }}>
+                <DirectionIcon style={{ width: dimensions.iconSize.md, height: dimensions.iconSize.md }} className={directionStyle.text} />
               </div>
             </div>
 
             {/* Price */}
             {result.price && (
-              <div className="mb-4">
-                <div className="text-2xl font-mono font-bold text-slate-50">
+              <div style={{ marginBottom: spacing.lg }}>
+                <div style={{ fontSize: typography['2xl'] }} className="font-mono font-bold text-slate-50">
                   ${result.price.toFixed(2)}
                 </div>
                 {result.change_24h !== undefined && (
-                  <div className={`text-sm font-semibold ${
+                  <div style={{ fontSize: typography.sm }} className={`font-semibold ${
                     result.change_24h >= 0 ? 'text-green-400' : 'text-red-400'
                   }`}>
                     {result.change_24h >= 0 ? '+' : ''}{result.change_24h.toFixed(2)}% (24h)
@@ -103,21 +121,21 @@ export default function ResultsGrid({ data, onCardClick }: ResultsGridProps) {
             )}
 
             {/* Signal Badge */}
-            <div className="flex items-center gap-2 mb-4">
-              <span className={`px-3 py-1 rounded-lg text-xs font-bold ${directionStyle.bg} ${directionStyle.text} border ${directionStyle.border}`}>
+            <div className="flex items-center gap-2" style={{ marginBottom: spacing.lg }}>
+              <span style={{ padding: `${spacing.sm} ${spacing.md}`, borderRadius: radius.lg, fontSize: typography.xs }} className={`font-bold ${directionStyle.bg} ${directionStyle.text} border ${directionStyle.border}`}>
                 {direction}
               </span>
             </div>
 
             {/* Score & Confidence */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className={`rounded-lg p-3 border ${getScoreColor(score)}`}>
-                <div className="text-xs text-slate-400 mb-1">Score</div>
-                <div className="text-2xl font-bold">{score.toFixed(0)}</div>
+            <div className="grid grid-cols-2 gap-3" style={{ marginBottom: spacing.lg }}>
+              <div style={{ borderRadius: radius.lg, padding: spacing.md }} className={`border ${getScoreColor(score)}`}>
+                <div style={{ fontSize: typography.xs, marginBottom: spacing.xs }} className="text-slate-400">Score</div>
+                <div style={{ fontSize: typography['2xl'] }} className="font-bold">{score.toFixed(0)}</div>
               </div>
-              <div className="bg-cyan-500/10 border border-cyan-500/50 rounded-lg p-3">
-                <div className="text-xs text-slate-400 mb-1">Confidence</div>
-                <div className="text-2xl font-bold text-cyan-400">
+              <div style={{ borderRadius: radius.lg, padding: spacing.md }} className="bg-cyan-500/10 border border-cyan-500/50">
+                <div style={{ fontSize: typography.xs, marginBottom: spacing.xs }} className="text-slate-400">Confidence</div>
+                <div style={{ fontSize: typography['2xl'] }} className="font-bold text-cyan-400">
                   {((result.confidence || 0) * 100).toFixed(0)}%
                 </div>
               </div>
@@ -127,16 +145,18 @@ export default function ResultsGrid({ data, onCardClick }: ResultsGridProps) {
             {result.rsi_macd_score !== undefined && (
               <div className="space-y-2">
                 <div className="space-y-1">
-                  <div className="flex justify-between text-xs">
+                  <div className="flex justify-between" style={{ fontSize: typography.xs }}>
                     <span className="text-slate-400">Core Signal</span>
                     <span className="text-slate-300 font-medium">
                       {(result.rsi_macd_score * 100).toFixed(0)}%
                     </span>
                   </div>
-                  <div className="w-full bg-slate-700/50 rounded-full h-1.5 overflow-hidden">
-                    <div 
-                      className="bg-gradient-to-r from-blue-400 to-cyan-500 h-full transition-all duration-500"
-                      style={{ width: `${result.rsi_macd_score * 100}%` }}
+                  <div className="w-full bg-slate-700/50 overflow-hidden" style={{ borderRadius: radius.full, height: '6px' }}>
+                    <motion.div 
+                      className="bg-gradient-to-r from-blue-400 to-cyan-500 h-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${result.rsi_macd_score * 100}%` }}
+                      transition={{ duration: 0.5, delay: index * 0.05 + 0.3 }}
                     />
                   </div>
                 </div>
@@ -145,9 +165,9 @@ export default function ResultsGrid({ data, onCardClick }: ResultsGridProps) {
 
             {/* Timestamp */}
             {result.timestamp && (
-              <div className="flex items-center gap-1 text-xs text-slate-500 mt-4 pt-4 border-t border-slate-800">
-                <Clock className="w-3 h-3" />
-                <span>{new Date(result.timestamp).toLocaleTimeString()}</span>
+              <div className="flex items-center gap-1 text-slate-500 border-t border-slate-800" style={{ fontSize: typography.xs, marginTop: spacing.lg, paddingTop: spacing.lg }}>
+                <Clock style={{ width: dimensions.iconSize.xs, height: dimensions.iconSize.xs }} />
+                <span>{getRelativeTime(result.timestamp)}</span>
               </div>
             )}
           </motion.div>
@@ -155,10 +175,17 @@ export default function ResultsGrid({ data, onCardClick }: ResultsGridProps) {
       })}
 
       {data.length === 0 && (
-        <div className="col-span-full bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 shadow-xl rounded-xl p-12 text-center">
-          <Activity className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-          <p className="text-slate-400">No results to display</p>
-        </div>
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="col-span-full bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 shadow-xl text-center"
+          style={{ borderRadius: radius.xl, padding: spacing['3xl'] }}
+          role="status"
+        >
+          <Activity style={{ width: dimensions.iconSize.xl, height: dimensions.iconSize.xl }} className="text-slate-600 mx-auto mb-3" />
+          <p style={{ fontSize: typography.base }} className="text-slate-400 mb-2">No results to display</p>
+          <p style={{ fontSize: typography.sm }} className="text-slate-500">Try adjusting your scan parameters or run a new scan</p>
+        </motion.div>
       )}
     </div>
   );
