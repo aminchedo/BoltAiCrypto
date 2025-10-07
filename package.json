@@ -16,8 +16,8 @@
     "preview": "npm run frontend:preview"
   },
   "dependencies": {
-    "@react-three/drei": "^10.7.6",
-    "@react-three/fiber": "^9.3.0",
+    "@react-three/drei": "^9.109.2",
+    "@react-three/fiber": "^8.17.10",
     "@types/d3": "^7.4.3",
     "chart.js": "^4.5.0",
     "chartjs-adapter-date-fns": "^3.0.0",

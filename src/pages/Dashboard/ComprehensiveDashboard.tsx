@@ -89,6 +89,7 @@ export default function ComprehensiveDashboard() {
     alerts: 0
   });
   const [selectedSymbol, setSelectedSymbol] = useState('BTCUSDT');
+  const [favorites, setFavorites] = useState<string[]>(['BTCUSDT', 'ETHUSDT']);
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
@@ -591,23 +592,6 @@ function MenuItem({
       {/* Children */}
       {hasChildren && expanded && !collapsed && (
         <ul className="mt-0.5 space-y-0.5">
-          {item.children!.map((child) => (
-            <MenuItem
-              key={child.id}
-              item={child}
-              collapsed={collapsed}
-              active={active}
-              onClick={onClick}
-              depth={depth + 1}
-            />
-          ))}
-        </ul>
-      )}
-    </li>
-  );
-}
-ren && expanded && !collapsed && (
-        <ul className="mt-1 space-y-1">
           {item.children!.map((child) => (
             <MenuItem
               key={child.id}
