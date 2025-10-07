@@ -1,15 +1,27 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { TradingSignal } from '../types';
-import { TrendingUp, TrendingDown, Minus, Activity, Target, Shield, Clock } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Activity, Target, Shield, Clock, X } from 'lucide-react';
+import { spacing, typography, radius, dimensions, getRelativeTime, formatCurrency } from '../utils/designTokens';
 
 interface SignalCardProps {
   signal: TradingSignal;
   onAnalyze: (symbol: string) => void;
   onExecute: (signal: TradingSignal) => void;
+  onDismiss?: (signal: TradingSignal) => void;
+  index?: number;
 }
 
-const SignalCard: React.FC<SignalCardProps> = ({ signal, onAnalyze, onExecute }) => {
+const SignalCard: React.FC<SignalCardProps> = ({ signal, onAnalyze, onExecute, onDismiss, index = 0 }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(false);
+
+  const handleDismiss = () => {
+    setIsDismissed(true);
+    setTimeout(() => {
+      onDismiss?.(signal);
+    }, 300);
+  };
   const getSignalIcon = (action: string) => {
     switch (action) {
       case 'BUY': return <TrendingUp className="w-5 h-5" />;
@@ -49,37 +61,56 @@ const SignalCard: React.FC<SignalCardProps> = ({ signal, onAnalyze, onExecute })
 
   const colors = getSignalColors(signal.action);
 
-  const formatTime = (timestamp: Date) => {
-    const now = new Date();
-    const signalTime = new Date(timestamp);
-    const diff = Math.floor((now.getTime() - signalTime.getTime()) / 1000 / 60);
-    
-    if (diff < 1) return 'Just now';
-    if (diff < 60) return `${diff}m ago`;
-    if (diff < 1440) return `${Math.floor(diff / 60)}h ago`;
-    return signalTime.toLocaleDateString();
+  // Calculate risk/reward ratio
+  const calculateRR = () => {
+    const entry = signal.entry_price || signal.price;
+    const sl = signal.stop_loss || signal.price * 0.98;
+    const tp = signal.take_profit || signal.price * 1.04;
+    const risk = Math.abs(entry - sl);
+    const reward = Math.abs(tp - entry);
+    return risk > 0 ? (reward / risk).toFixed(2) : 'N/A';
   };
 
-  const formatPrice = (price: number) => {
-    return price.toLocaleString('en-US', { 
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 8
-    });
-  };
+  if (isDismissed) {
+    return null;
+  }
 
   return (
     <motion.div
-      className={`relative overflow-hidden bg-slate-900/80 backdrop-blur-xl rounded-xl border ${colors.border} hover:${colors.glow} transition-all duration-300 group hover:scale-[1.02]`}
+      className={`relative overflow-hidden bg-slate-900/80 backdrop-blur-xl border ${colors.border} hover:${colors.glow} transition-all duration-300 group hover:scale-[1.02]`}
+      style={{ borderRadius: radius['2xl'], padding: spacing.xl }}
       initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={{ opacity: isDismissed ? 0 : 1, scale: isDismissed ? 0.9 : 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
       whileHover={{ y: -4 }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      role="article"
+      aria-label={`Trading signal for ${signal.symbol}`}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') onAnalyze(signal.symbol);
+        if (e.key === 'Delete' && onDismiss) handleDismiss();
+      }}
     >
       {/* Animated background gradient */}
       <div className={`absolute inset-0 bg-gradient-to-br ${colors.gradient} opacity-5 group-hover:opacity-10 transition-opacity duration-300`} />
       
-      <div className="relative p-6">
+      {/* Dismiss button */}
+      {onDismiss && isHovered && (
+        <motion.button
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="absolute top-2 right-2 z-10 w-8 h-8 flex items-center justify-center bg-slate-800/80 hover:bg-red-500/80 border border-slate-600 hover:border-red-500 rounded-lg transition-colors"
+          onClick={handleDismiss}
+          aria-label="Dismiss signal"
+          title="Dismiss (Delete key)"
+        >
+          <X className="w-4 h-4 text-slate-300" />
+        </motion.button>
+      )}
+      
+      <div className="relative">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -98,35 +129,36 @@ const SignalCard: React.FC<SignalCardProps> = ({ signal, onAnalyze, onExecute })
           </div>
           
           <div className="text-right">
-            <div className="text-3xl font-bold text-slate-50">
+            <div style={{ fontSize: typography['3xl'] }} className="font-bold text-slate-50">
               {(signal.final_score * 100).toFixed(0)}
             </div>
-            <div className="text-xs text-slate-400 flex items-center gap-1 justify-end mt-1">
-              <Clock className="w-3 h-3" />
-              {formatTime(signal.timestamp)}
+            <div style={{ fontSize: typography.xs }} className="text-slate-400 flex items-center gap-1 justify-end mt-1">
+              <Clock style={{ width: dimensions.iconSize.xs, height: dimensions.iconSize.xs }} />
+              {getRelativeTime(signal.timestamp)}
             </div>
           </div>
         </div>
 
         {/* Price Information */}
-        <div className="mb-6 bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
-          <div className="text-3xl font-mono font-bold text-slate-50 mb-3">
-            {formatPrice(signal.price)}
+        <div style={{ marginBottom: spacing.xl, padding: spacing.lg, borderRadius: radius.lg }} className="bg-slate-800/50 border border-slate-700/50">
+          <div style={{ fontSize: typography['3xl'], marginBottom: spacing.md }} className="font-mono font-bold text-slate-50">
+            {formatCurrency(signal.price, signal.price < 1 ? 6 : 2)}
           </div>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="flex items-center gap-2">
-              <Target className="w-4 h-4 text-cyan-400" />
-              <div>
-                <div className="text-slate-400 text-xs">Entry</div>
-                <div className="text-slate-50 font-semibold">{formatPrice(signal.entry_price || signal.price)}</div>
-              </div>
+          <div className="grid grid-cols-3 gap-3" style={{ fontSize: typography.sm }}>
+            <div className="flex flex-col gap-1">
+              <Target style={{ width: dimensions.iconSize.sm, height: dimensions.iconSize.sm }} className="text-cyan-400" />
+              <div style={{ fontSize: typography.xs }} className="text-slate-400">Entry</div>
+              <div className="text-slate-50 font-semibold">{formatCurrency(signal.entry_price || signal.price, 2)}</div>
             </div>
-            <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-red-400" />
-              <div>
-                <div className="text-slate-400 text-xs">Stop Loss</div>
-                <div className="text-slate-50 font-semibold">{formatPrice(signal.stop_loss || signal.price * 0.98)}</div>
-              </div>
+            <div className="flex flex-col gap-1">
+              <Shield style={{ width: dimensions.iconSize.sm, height: dimensions.iconSize.sm }} className="text-red-400" />
+              <div style={{ fontSize: typography.xs }} className="text-slate-400">Stop Loss</div>
+              <div className="text-slate-50 font-semibold">{formatCurrency(signal.stop_loss || signal.price * 0.98, 2)}</div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <Target style={{ width: dimensions.iconSize.sm, height: dimensions.iconSize.sm }} className="text-emerald-400" />
+              <div style={{ fontSize: typography.xs }} className="text-slate-400">R:R Ratio</div>
+              <div className="text-emerald-400 font-bold">{calculateRR()}</div>
             </div>
           </div>
         </div>
@@ -246,17 +278,21 @@ const SignalCard: React.FC<SignalCardProps> = ({ signal, onAnalyze, onExecute })
         <div className="flex gap-3">
           <motion.button 
             onClick={() => onAnalyze(signal.symbol)}
-            className="flex-1 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-600/50 hover:border-slate-500 px-4 py-3 rounded-lg text-slate-50 font-medium transition-all duration-200 flex items-center justify-center gap-2"
+            style={{ padding: `${spacing.md} ${spacing.lg}`, borderRadius: radius.lg, fontSize: typography.base }}
+            className="flex-1 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-600/50 hover:border-slate-500 text-slate-50 font-medium transition-all duration-200 flex items-center justify-center gap-2"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            aria-label="View detailed analysis"
+            title="View Details (Enter key)"
           >
-            <Activity className="w-4 h-4" />
-            <span>Analyze</span>
+            <Activity style={{ width: dimensions.iconSize.sm, height: dimensions.iconSize.sm }} />
+            <span>Details</span>
           </motion.button>
           
           <motion.button 
             onClick={() => onExecute(signal)}
-            className={`flex-1 px-4 py-3 rounded-lg text-white font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
+            style={{ padding: `${spacing.md} ${spacing.lg}`, borderRadius: radius.lg, fontSize: typography.base }}
+            className={`flex-1 text-white font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
               signal.action === 'HOLD'
                 ? 'bg-slate-600/50 cursor-not-allowed opacity-50'
                 : `bg-gradient-to-r ${colors.gradient} hover:shadow-lg ${colors.glow}`
@@ -264,10 +300,26 @@ const SignalCard: React.FC<SignalCardProps> = ({ signal, onAnalyze, onExecute })
             disabled={signal.action === 'HOLD'}
             whileHover={signal.action !== 'HOLD' ? { scale: 1.02 } : {}}
             whileTap={signal.action !== 'HOLD' ? { scale: 0.98 } : {}}
+            aria-label={`Execute ${signal.action} trade`}
+            title={signal.action === 'HOLD' ? 'Hold Position' : `Execute ${signal.action}`}
           >
             {getSignalIcon(signal.action)}
-            <span>{signal.action === 'HOLD' ? 'Hold Position' : `Execute ${signal.action}`}</span>
+            <span>{signal.action === 'HOLD' ? 'Hold' : `Trade`}</span>
           </motion.button>
+          
+          {onDismiss && (
+            <motion.button
+              onClick={handleDismiss}
+              style={{ padding: `${spacing.md} ${spacing.lg}`, borderRadius: radius.lg }}
+              className="bg-slate-800/80 hover:bg-red-500/20 border border-slate-600/50 hover:border-red-500/50 text-slate-50 transition-all duration-200 flex items-center justify-center"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              aria-label="Dismiss signal"
+              title="Dismiss (Delete key)"
+            >
+              <X style={{ width: dimensions.iconSize.sm, height: dimensions.iconSize.sm }} />
+            </motion.button>
+          )}
         </div>
       </div>
     </motion.div>
