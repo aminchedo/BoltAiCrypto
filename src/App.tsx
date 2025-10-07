@@ -1,12 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Dashboard from './pages/Dashboard';
+import ComprehensiveDashboard from './pages/Dashboard/ComprehensiveDashboard';
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Use the comprehensive dashboard as the main and only route */}
-        <Route path="/" element={<Dashboard />} />
+        {/* Use the new comprehensive dashboard with sidebar as the main route */}
+        <Route path="/" element={<ComprehensiveDashboard />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

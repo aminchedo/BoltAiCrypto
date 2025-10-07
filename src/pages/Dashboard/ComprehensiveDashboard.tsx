@@ -24,10 +24,14 @@ import {
   AlertTriangle,
   BookOpen,
   Sliders,
-  LineChart
+  LineChart,
+  Sparkles,
+  Lightbulb,
+  MessageSquare
 } from 'lucide-react';
 import clsx from 'clsx';
 import Loading from '../../components/Loading';
+import EnhancedOverview from './EnhancedOverview';
 import { api } from '../../services/api';
 import { wsClient } from '../../services/wsClient';
 import { store } from '../../state/store';
@@ -219,7 +223,7 @@ export default function ComprehensiveDashboard() {
   const renderContent = () => {
     switch (activeView) {
       case 'overview':
-        return <OverviewPanel stats={stats} onNavigate={setActiveView} />;
+        return <EnhancedOverview stats={stats} onNavigate={setActiveView} />;
       case 'scanner':
         return (
           <Suspense fallback={<Loading message="در حال بارگذاری اسکنر جامع..." />}>
@@ -323,7 +327,7 @@ export default function ComprehensiveDashboard() {
           </Suspense>
         );
       default:
-        return <OverviewPanel stats={stats} onNavigate={setActiveView} />;
+        return <EnhancedOverview stats={stats} onNavigate={setActiveView} />;
     }
   };
 
@@ -542,165 +546,3 @@ function MenuItem({
     </li>
   );
 }
-
-// Overview Panel Component
-function OverviewPanel({ stats, onNavigate }: { stats: DashboardStats; onNavigate: (view: string) => void }) {
-  const kpiCards = [
-    {
-      title: 'سیگنال‌های فعال',
-      value: stats.totalSignals,
-      change: '+12%',
-      icon: Activity,
-      color: 'from-cyan-500 to-blue-600',
-      action: () => onNavigate('signals')
-    },
-    {
-      title: 'ارزش پرتفوی',
-      value: `$${stats.portfolioValue.toLocaleString()}`,
-      change: stats.dailyPnL >= 0 ? `+${stats.dailyPnL.toFixed(2)}%` : `${stats.dailyPnL.toFixed(2)}%`,
-      icon: DollarSign,
-      color: 'from-green-500 to-emerald-600',
-      action: () => onNavigate('portfolio-overview')
-    },
-    {
-      title: 'نرخ برد',
-      value: `${(stats.winRate * 100).toFixed(1)}%`,
-      change: '+5%',
-      icon: TrendingUp,
-      color: 'from-purple-500 to-pink-600',
-      action: () => onNavigate('backtest')
-    },
-    {
-      title: 'سطح ریسک',
-      value: stats.riskLevel === 'low' ? 'پایین' : stats.riskLevel === 'medium' ? 'متوسط' : 'بالا',
-      change: stats.alerts > 0 ? `${stats.alerts} هشدار` : 'ایمن',
-      icon: Shield,
-      color: stats.riskLevel === 'low' ? 'from-green-500 to-emerald-600' : 
-             stats.riskLevel === 'medium' ? 'from-yellow-500 to-orange-600' : 'from-red-500 to-pink-600',
-      action: () => onNavigate('risk-monitor')
-    }
-  ];
-
-  const quickActions = [
-    { label: 'اسکنر جامع', icon: Search, view: 'scanner', color: 'cyan' },
-    { label: 'تحلیل هوش مصنوعی', icon: Brain, view: 'ai-predictions', color: 'purple' },
-    { label: 'نمای سه‌بعدی', icon: BoxIcon, view: '3d-market', color: 'blue' },
-    { label: 'بک‌تست', icon: TestTube, view: 'backtest', color: 'green' },
-    { label: 'نظارت ریسک', icon: Shield, view: 'risk-monitor', color: 'red' },
-    { label: 'سازنده استراتژی', icon: Sliders, view: 'strategy-builder', color: 'yellow' }
-  ];
-
-  return (
-    <div className="space-y-6">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {kpiCards.map((card, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            onClick={card.action}
-            className="bg-slate-800/30 border border-white/10 backdrop-blur-xl rounded-2xl px-6 py-5 cursor-pointer hover:border-white/20 transition-all duration-200 hover:shadow-lg hover:shadow-cyan-500/10 group"
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div className={`p-3 rounded-xl bg-gradient-to-r ${card.color} group-hover:scale-110 transition-transform duration-200`}>
-                <card.icon className="w-6 h-6 text-white" />
-              </div>
-              <span className={clsx(
-                "text-sm font-medium",
-                card.change.startsWith('+') ? 'text-green-400' : 'text-red-400'
-              )}>
-                {card.change}
-              </span>
-            </div>
-            <h3 className="text-slate-400 text-sm mb-2">{card.title}</h3>
-            <p className="text-3xl font-bold text-white ltr-numbers">{card.value}</p>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="bg-slate-800/30 border border-white/10 backdrop-blur-xl rounded-2xl p-6">
-        <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-          <Zap className="w-5 h-5 text-cyan-400" />
-          دسترسی سریع
-        </h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {quickActions.map((action, index) => (
-            <motion.button
-              key={index}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.4 + index * 0.05 }}
-              onClick={() => onNavigate(action.view)}
-              className="flex flex-col items-center gap-3 p-4 rounded-xl bg-slate-700/30 border border-white/10 hover:border-white/20 hover:bg-slate-700/50 transition-all duration-200 group"
-            >
-              <div className={`p-3 rounded-lg bg-${action.color}-500/20 group-hover:bg-${action.color}-500/30 transition-colors`}>
-                <action.icon className={`w-6 h-6 text-${action.color}-400`} />
-              </div>
-              <span className="text-sm text-slate-300 text-center">{action.label}</span>
-            </motion.button>
-          ))}
-        </div>
-      </div>
-
-      {/* Recent Activity Placeholder */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-slate-800/30 border border-white/10 backdrop-blur-xl rounded-2xl p-6">
-          <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-            <Activity className="w-5 h-5 text-cyan-400" />
-            فعالیت‌های اخیر
-          </h3>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                <span className="text-slate-300 text-sm">سیگنال خرید BTCUSDT</span>
-              </div>
-              <span className="text-slate-500 text-sm">2 دقیقه پیش</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                <span className="text-slate-300 text-sm">اسکن جدید تکمیل شد</span>
-              </div>
-              <span className="text-slate-500 text-sm">5 دقیقه پیش</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-                <span className="text-slate-300 text-sm">هشدار ریسک پرتفوی</span>
-              </div>
-              <span className="text-slate-500 text-sm">10 دقیقه پیش</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-slate-800/30 border border-white/10 backdrop-blur-xl rounded-2xl p-6">
-          <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-green-400" />
-            بهترین عملکردها
-          </h3>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
-              <span className="text-slate-300 text-sm">ETHUSDT</span>
-              <span className="text-green-400 text-sm font-medium">+15.5%</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
-              <span className="text-slate-300 text-sm">SOLUSDT</span>
-              <span className="text-green-400 text-sm font-medium">+12.3%</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
-              <span className="text-slate-300 text-sm">BNBUSDT</span>
-              <span className="text-green-400 text-sm font-medium">+8.7%</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Import necessary icons
-import { Sparkles, Lightbulb, MessageSquare } from 'lucide-react';
