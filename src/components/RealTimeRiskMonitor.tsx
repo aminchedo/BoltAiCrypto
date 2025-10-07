@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
+import clsx from 'clsx';
 import { 
   AlertTriangle, 
   Shield, 
@@ -10,8 +11,15 @@ import {
   DollarSign,
   Percent,
   Clock,
-  AlertCircle
+  AlertCircle,
+  RefreshCw,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
+import { apiService } from '../services/api';
+import { dimensions, spacing, typography, formatCurrency, formatPercentage, getRelativeTime } from '../utils/designTokens';
+import Loading from './Loading';
+import ErrorBlock from './ErrorBlock';
 
 interface RiskMetric {
   name: string;
