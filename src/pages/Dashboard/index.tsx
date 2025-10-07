@@ -1,3 +1,7 @@
+// Export the new comprehensive dashboard
+export { default } from './ComprehensiveDashboard';
+
+// Keep the old implementation as backup
 import { useState, useEffect, Suspense, lazy } from 'react';
 import { TrendingUp, TrendingDown, Activity, DollarSign, AlertTriangle, RefreshCw } from 'lucide-react';
 import SignalCard from '../../components/SignalCard';
@@ -9,7 +13,7 @@ import { store } from '../../state/store';
 
 const Chart = lazy(() => import('../../components/Chart'));
 
-export default function Dashboard() {
+export function DashboardOld() {
   const [signals, setSignals] = useState<TradingSignal[]>([]);
   const [riskStatus, setRiskStatus] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
