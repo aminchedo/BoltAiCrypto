@@ -1,6 +1,7 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { TradingSignal } from '../types';
-import { TrendingUp, TrendingDown, Minus, Activity, Target, Shield } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Activity, Target, Shield, Clock } from 'lucide-react';
 
 interface SignalCardProps {
   signal: TradingSignal;
@@ -11,9 +12,9 @@ interface SignalCardProps {
 const SignalCard: React.FC<SignalCardProps> = ({ signal, onAnalyze, onExecute }) => {
   const getSignalIcon = (action: string) => {
     switch (action) {
-      case 'BUY': return <TrendingUp className="w-4 h-4" />;
-      case 'SELL': return <TrendingDown className="w-4 h-4" />;
-      default: return <Minus className="w-4 h-4" />;
+      case 'BUY': return <TrendingUp className="w-5 h-5" />;
+      case 'SELL': return <TrendingDown className="w-5 h-5" />;
+      default: return <Minus className="w-5 h-5" />;
     }
   };
 
@@ -21,24 +22,27 @@ const SignalCard: React.FC<SignalCardProps> = ({ signal, onAnalyze, onExecute })
     switch (action) {
       case 'BUY': 
         return {
-          gradient: 'from-emerald-500 to-green-600',
-          bg: 'bg-emerald-500/10',
-          text: 'text-emerald-400',
-          border: 'border-emerald-500/30'
+          gradient: 'from-green-500 to-emerald-600',
+          bg: 'bg-green-500/10',
+          text: 'text-green-400',
+          border: 'border-green-500/50',
+          glow: 'shadow-green-500/25'
         };
       case 'SELL': 
         return {
-          gradient: 'from-rose-500 to-red-600',
-          bg: 'bg-rose-500/10',
-          text: 'text-rose-400',
-          border: 'border-rose-500/30'
+          gradient: 'from-red-500 to-rose-600',
+          bg: 'bg-red-500/10',
+          text: 'text-red-400',
+          border: 'border-red-500/50',
+          glow: 'shadow-red-500/25'
         };
       default: 
         return {
           gradient: 'from-slate-500 to-gray-600',
           bg: 'bg-slate-500/10',
           text: 'text-slate-400',
-          border: 'border-slate-500/30'
+          border: 'border-slate-500/50',
+          glow: 'shadow-slate-500/25'
         };
     }
   };
@@ -46,12 +50,14 @@ const SignalCard: React.FC<SignalCardProps> = ({ signal, onAnalyze, onExecute })
   const colors = getSignalColors(signal.action);
 
   const formatTime = (timestamp: Date) => {
-    return new Date(timestamp).toLocaleTimeString('en-US', { 
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
+    const now = new Date();
+    const signalTime = new Date(timestamp);
+    const diff = Math.floor((now.getTime() - signalTime.getTime()) / 1000 / 60);
+    
+    if (diff < 1) return 'Just now';
+    if (diff < 60) return `${diff}m ago`;
+    if (diff < 1440) return `${Math.floor(diff / 60)}h ago`;
+    return signalTime.toLocaleDateString();
   };
 
   const formatPrice = (price: number) => {
@@ -64,21 +70,26 @@ const SignalCard: React.FC<SignalCardProps> = ({ signal, onAnalyze, onExecute })
   };
 
   return (
-    <div className={`relative overflow-hidden bg-slate-800/40 backdrop-blur-xl rounded-2xl border ${colors.border} hover:border-opacity-60 transition-all duration-300 group hover:scale-[1.02]`}>
+    <motion.div
+      className={`relative overflow-hidden bg-slate-900/80 backdrop-blur-xl rounded-xl border ${colors.border} hover:${colors.glow} transition-all duration-300 group hover:scale-[1.02]`}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -4 }}
+    >
       {/* Animated background gradient */}
       <div className={`absolute inset-0 bg-gradient-to-br ${colors.gradient} opacity-5 group-hover:opacity-10 transition-opacity duration-300`} />
       
       <div className="relative p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <div className={`flex items-center justify-center w-8 h-8 rounded-full ${colors.bg} ${colors.text}`}>
+          <div className="flex items-center gap-3">
+            <div className={`flex items-center justify-center w-10 h-10 rounded-xl ${colors.bg} ${colors.text} border ${colors.border}`}>
               {getSignalIcon(signal.action)}
             </div>
             <div>
-              <h3 className="text-xl font-bold text-white">{signal.symbol}</h3>
-              <div className="flex items-center space-x-2">
-                <span className={`text-sm font-semibold ${colors.text}`}>
+              <h3 className="text-xl font-bold text-slate-50">{signal.symbol}</h3>
+              <div className="flex items-center gap-2">
+                <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${colors.bg} ${colors.text} border ${colors.border}`}>
                   {signal.action}
                 </span>
                 <div className={`w-2 h-2 rounded-full ${colors.gradient} bg-gradient-to-r animate-pulse`} />
@@ -87,113 +98,130 @@ const SignalCard: React.FC<SignalCardProps> = ({ signal, onAnalyze, onExecute })
           </div>
           
           <div className="text-right">
-            <div className="text-2xl font-bold text-white">
-              {(signal.final_score * 100).toFixed(1)}%
+            <div className="text-3xl font-bold text-slate-50">
+              {(signal.final_score * 100).toFixed(0)}
             </div>
-            <div className="text-xs text-slate-400">
+            <div className="text-xs text-slate-400 flex items-center gap-1 justify-end mt-1">
+              <Clock className="w-3 h-3" />
               {formatTime(signal.timestamp)}
             </div>
           </div>
         </div>
 
         {/* Price Information */}
-        <div className="mb-6">
-          <div className="text-2xl font-mono font-bold text-white mb-1">
+        <div className="mb-6 bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+          <div className="text-3xl font-mono font-bold text-slate-50 mb-3">
             {formatPrice(signal.price)}
           </div>
-          <div className="flex items-center space-x-4 text-sm text-slate-400">
-            <div className="flex items-center space-x-1">
-              <Target className="w-3 h-3" />
-              <span>Entry: {formatPrice(signal.entry_price || signal.price)}</span>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="flex items-center gap-2">
+              <Target className="w-4 h-4 text-cyan-400" />
+              <div>
+                <div className="text-slate-400 text-xs">Entry</div>
+                <div className="text-slate-50 font-semibold">{formatPrice(signal.entry_price || signal.price)}</div>
+              </div>
             </div>
-            <div className="flex items-center space-x-1">
-              <Shield className="w-3 h-3" />
-              <span>SL: {formatPrice(signal.stop_loss || signal.price * 0.98)}</span>
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4 text-red-400" />
+              <div>
+                <div className="text-slate-400 text-xs">Stop Loss</div>
+                <div className="text-slate-50 font-semibold">{formatPrice(signal.stop_loss || signal.price * 0.98)}</div>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Algorithm Breakdown */}
         <div className="space-y-3 mb-6">
-          <div className="text-sm font-medium text-slate-300 mb-2">Algorithm Breakdown</div>
+          <div className="text-sm font-semibold text-slate-300 mb-3">Component Scores</div>
           
           {/* Core RSI+MACD (40%) */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-400">Core (RSI+MACD)</span>
-            <div className="flex items-center space-x-3">
-              <div className="w-20 bg-slate-700/50 rounded-full h-2 overflow-hidden">
-                <div 
-                  className="bg-gradient-to-r from-blue-400 to-cyan-500 h-full transition-all duration-500 ease-out"
-                  style={{ width: `${signal.rsi_macd_score * 100}%` }}
-                />
-              </div>
-              <span className="font-mono text-sm text-white w-12 text-right">
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-400">Core (RSI+MACD)</span>
+              <span className="font-mono text-slate-50 font-medium">
                 {(signal.rsi_macd_score * 40).toFixed(1)}%
               </span>
+            </div>
+            <div className="w-full bg-slate-700/50 rounded-full h-2 overflow-hidden">
+              <motion.div 
+                className="bg-gradient-to-r from-blue-400 to-cyan-500 h-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${signal.rsi_macd_score * 100}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              />
             </div>
           </div>
 
           {/* SMC (25%) */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-400">SMC Analysis</span>
-            <div className="flex items-center space-x-3">
-              <div className="w-20 bg-slate-700/50 rounded-full h-2 overflow-hidden">
-                <div 
-                  className="bg-gradient-to-r from-purple-400 to-violet-500 h-full transition-all duration-500 ease-out"
-                  style={{ width: `${signal.smc_score * 100}%` }}
-                />
-              </div>
-              <span className="font-mono text-sm text-white w-12 text-right">
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-400">SMC Analysis</span>
+              <span className="font-mono text-slate-50 font-medium">
                 {(signal.smc_score * 25).toFixed(1)}%
               </span>
+            </div>
+            <div className="w-full bg-slate-700/50 rounded-full h-2 overflow-hidden">
+              <motion.div 
+                className="bg-gradient-to-r from-purple-400 to-violet-500 h-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${signal.smc_score * 100}%` }}
+                transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
+              />
             </div>
           </div>
 
           {/* Patterns (20%) */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-400">Patterns</span>
-            <div className="flex items-center space-x-3">
-              <div className="w-20 bg-slate-700/50 rounded-full h-2 overflow-hidden">
-                <div 
-                  className="bg-gradient-to-r from-amber-400 to-orange-500 h-full transition-all duration-500 ease-out"
-                  style={{ width: `${signal.pattern_score * 100}%` }}
-                />
-              </div>
-              <span className="font-mono text-sm text-white w-12 text-right">
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-400">Pattern Detection</span>
+              <span className="font-mono text-slate-50 font-medium">
                 {(signal.pattern_score * 20).toFixed(1)}%
               </span>
+            </div>
+            <div className="w-full bg-slate-700/50 rounded-full h-2 overflow-hidden">
+              <motion.div 
+                className="bg-gradient-to-r from-amber-400 to-orange-500 h-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${signal.pattern_score * 100}%` }}
+                transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+              />
             </div>
           </div>
 
           {/* Sentiment (10%) */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-400">Sentiment</span>
-            <div className="flex items-center space-x-3">
-              <div className="w-20 bg-slate-700/50 rounded-full h-2 overflow-hidden">
-                <div 
-                  className="bg-gradient-to-r from-pink-400 to-rose-500 h-full transition-all duration-500 ease-out"
-                  style={{ width: `${signal.sentiment_score * 100}%` }}
-                />
-              </div>
-              <span className="font-mono text-sm text-white w-12 text-right">
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-400">Market Sentiment</span>
+              <span className="font-mono text-slate-50 font-medium">
                 {(signal.sentiment_score * 10).toFixed(1)}%
               </span>
+            </div>
+            <div className="w-full bg-slate-700/50 rounded-full h-2 overflow-hidden">
+              <motion.div 
+                className="bg-gradient-to-r from-pink-400 to-rose-500 h-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${signal.sentiment_score * 100}%` }}
+                transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
+              />
             </div>
           </div>
 
           {/* ML (5%) */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-400">ML Prediction</span>
-            <div className="flex items-center space-x-3">
-              <div className="w-20 bg-slate-700/50 rounded-full h-2 overflow-hidden">
-                <div 
-                  className="bg-gradient-to-r from-indigo-400 to-blue-500 h-full transition-all duration-500 ease-out"
-                  style={{ width: `${signal.ml_score * 100}%` }}
-                />
-              </div>
-              <span className="font-mono text-sm text-white w-12 text-right">
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-400">ML Prediction</span>
+              <span className="font-mono text-slate-50 font-medium">
                 {(signal.ml_score * 5).toFixed(1)}%
               </span>
+            </div>
+            <div className="w-full bg-slate-700/50 rounded-full h-2 overflow-hidden">
+              <motion.div 
+                className="bg-gradient-to-r from-indigo-400 to-blue-500 h-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${signal.ml_score * 100}%` }}
+                transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
+              />
             </div>
           </div>
         </div>
@@ -201,42 +229,48 @@ const SignalCard: React.FC<SignalCardProps> = ({ signal, onAnalyze, onExecute })
         {/* Overall Confidence */}
         <div className="mb-6">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-slate-300">Overall Confidence</span>
-            <span className="text-sm font-bold text-white">{(signal.confidence * 100).toFixed(0)}%</span>
+            <span className="text-sm font-semibold text-slate-300">Overall Confidence</span>
+            <span className="text-lg font-bold text-slate-50">{(signal.confidence * 100).toFixed(0)}%</span>
           </div>
-          <div className="w-full bg-slate-700/50 rounded-full h-3 overflow-hidden">
-            <div 
-              className={`h-full transition-all duration-700 ease-out bg-gradient-to-r ${colors.gradient}`}
-              style={{ width: `${signal.confidence * 100}%` }}
+          <div className="w-full bg-slate-700/50 rounded-full h-3 overflow-hidden border border-slate-600/50">
+            <motion.div 
+              className={`h-full bg-gradient-to-r ${colors.gradient}`}
+              initial={{ width: 0 }}
+              animate={{ width: `${signal.confidence * 100}%` }}
+              transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
             />
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex space-x-3">
-          <button 
+        <div className="flex gap-3">
+          <motion.button 
             onClick={() => onAnalyze(signal.symbol)}
-            className="flex-1 bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600/50 hover:border-slate-500/50 px-4 py-3 rounded-xl text-white font-medium transition-all duration-200 flex items-center justify-center space-x-2"
+            className="flex-1 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-600/50 hover:border-slate-500 px-4 py-3 rounded-lg text-slate-50 font-medium transition-all duration-200 flex items-center justify-center gap-2"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
             <Activity className="w-4 h-4" />
             <span>Analyze</span>
-          </button>
+          </motion.button>
           
-          <button 
+          <motion.button 
             onClick={() => onExecute(signal)}
-            className={`flex-1 px-4 py-3 rounded-xl text-white font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
+            className={`flex-1 px-4 py-3 rounded-lg text-white font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
               signal.action === 'HOLD'
                 ? 'bg-slate-600/50 cursor-not-allowed opacity-50'
-                : `bg-gradient-to-r ${colors.gradient} hover:shadow-lg hover:shadow-${signal.action === 'BUY' ? 'emerald' : 'rose'}-500/25`
+                : `bg-gradient-to-r ${colors.gradient} hover:shadow-lg ${colors.glow}`
             }`}
             disabled={signal.action === 'HOLD'}
+            whileHover={signal.action !== 'HOLD' ? { scale: 1.02 } : {}}
+            whileTap={signal.action !== 'HOLD' ? { scale: 0.98 } : {}}
           >
             {getSignalIcon(signal.action)}
             <span>{signal.action === 'HOLD' ? 'Hold Position' : `Execute ${signal.action}`}</span>
-          </button>
+          </motion.button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

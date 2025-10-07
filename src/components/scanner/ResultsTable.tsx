@@ -1,310 +1,247 @@
-import React from 'react';
-import { TrendingUp, CheckSquare, Square, Activity, Shield, Waves, Target, TrendingDown } from 'lucide-react';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { TrendingUp, TrendingDown, ArrowRight, ArrowUpDown } from 'lucide-react';
 import { ScanResult } from '../../types';
-import ScoreGauge from '../ScoreGauge';
-import DirectionPill from '../DirectionPill';
 
 interface ResultsTableProps {
-  results: ScanResult[];
-  selectedSymbols: Set<string>;
-  onToggleSelection: (symbol: string) => void;
+  data: ScanResult[];
+  onRowClick?: (result: ScanResult) => void;
 }
 
-const ResultsTable: React.FC<ResultsTableProps> = ({ 
-  results, 
-  selectedSymbols,
-  onToggleSelection 
-}) => {
-  // Helper to extract score
+type SortKey = 'symbol' | 'timeframe' | 'action' | 'price' | 'change24h' | 'score' | 'confidence';
+type SortOrder = 'asc' | 'desc';
+
+export default function ResultsTable({ data, onRowClick }: ResultsTableProps) {
+  const [sortBy, setSortBy] = useState<SortKey>('score');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+
+  const handleSort = (key: SortKey) => {
+    if (sortBy === key) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(key);
+      setSortOrder('desc');
+    }
+  };
+
   const getScore = (result: ScanResult): number => {
     return result.overall_score ?? result.final_score ?? result.score ?? 0;
   };
 
-  // Helper to extract direction
-  const getDirection = (result: ScanResult): 'BULLISH' | 'BEARISH' | 'NEUTRAL' => {
+  const getDirection = (result: ScanResult): string => {
     return result.overall_direction ?? result.direction ?? 'NEUTRAL';
   };
 
-  // Helper to extract component score
-  const getComponentScore = (result: ScanResult, component: string): number => {
-    if (result.sample_components && result.sample_components[component]) {
-      return result.sample_components[component].score ?? 0;
-    }
-    return 0;
-  };
+  // Sort the data
+  const sortedData = [...data].sort((a, b) => {
+    let aVal: any, bVal: any;
 
-  // Helper to extract risk level
-  const getRiskLevel = (result: ScanResult): number => {
-    if (typeof result.risk_level === 'number') {
-      return result.risk_level;
+    switch (sortBy) {
+      case 'symbol':
+        aVal = a.symbol;
+        bVal = b.symbol;
+        break;
+      case 'timeframe':
+        aVal = a.timeframe || '';
+        bVal = b.timeframe || '';
+        break;
+      case 'action':
+        aVal = getDirection(a);
+        bVal = getDirection(b);
+        break;
+      case 'price':
+        aVal = a.price || 0;
+        bVal = b.price || 0;
+        break;
+      case 'change24h':
+        aVal = a.change_24h || 0;
+        bVal = b.change_24h || 0;
+        break;
+      case 'score':
+        aVal = getScore(a);
+        bVal = getScore(b);
+        break;
+      case 'confidence':
+        aVal = a.confidence || 0;
+        bVal = b.confidence || 0;
+        break;
+      default:
+        aVal = 0;
+        bVal = 0;
     }
-    // Convert string risk levels to numbers
-    if (typeof result.risk_level === 'string') {
-      const level = result.risk_level.toUpperCase();
-      if (level === 'LOW') return 25;
-      if (level === 'MEDIUM') return 50;
-      if (level === 'HIGH') return 75;
+
+    const order = sortOrder === 'asc' ? 1 : -1;
+    
+    if (typeof aVal === 'string' && typeof bVal === 'string') {
+      return aVal.localeCompare(bVal) * order;
     }
-    return 50; // Default to medium risk
-  };
+    
+    return (aVal > bVal ? 1 : -1) * order;
+  });
 
-  // Helper to extract price
-  const getPrice = (result: ScanResult): number => {
-    return result.price ?? 0;
-  };
-
-  // Format score as percentage
-  const formatPercent = (value: number): string => {
-    return `${(value * 100).toFixed(1)}%`;
+  const SortIcon = ({ columnKey }: { columnKey: SortKey }) => {
+    if (sortBy !== columnKey) return <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />;
+    return sortOrder === 'asc' ? 
+      <TrendingUp className="w-3 h-3 text-cyan-400" /> : 
+      <TrendingDown className="w-3 h-3 text-cyan-400" />;
   };
 
   return (
-    <div className="overflow-x-auto -mx-6 px-6">
-      <table className="w-full min-w-[1400px]">
-        <thead>
-          <tr className="border-b border-slate-700/50">
-            <th className="text-center py-4 px-2 text-slate-400 font-semibold text-xs">
-              <Square className="w-4 h-4 mx-auto" />
-            </th>
-            <th className="text-center py-4 px-3 text-slate-400 font-semibold text-xs">
-              رتبه
-            </th>
-            <th className="text-right py-4 px-4 text-slate-400 font-semibold text-sm">
-              نماد / ارز
-            </th>
-            <th className="text-center py-4 px-3 text-slate-400 font-semibold text-xs">
-              قیمت (USD)
-            </th>
-            <th className="text-center py-4 px-3 text-slate-400 font-semibold text-xs">
-              موفقیت (%)
-            </th>
-            <th className="text-center py-4 px-3 text-slate-400 font-semibold text-xs">
-              ریسک (%)
-            </th>
-            <th className="text-center py-4 px-3 text-slate-400 font-semibold text-xs">
-              <div className="flex items-center justify-center gap-1">
-                <Activity className="w-3 h-3" />
-                <span>نهنگ‌ها</span>
-              </div>
-            </th>
-            <th className="text-center py-4 px-3 text-slate-400 font-semibold text-xs">
-              <div className="flex items-center justify-center gap-1">
-                <Shield className="w-3 h-3" />
-                <span>SMC</span>
-              </div>
-            </th>
-            <th className="text-center py-4 px-3 text-slate-400 font-semibold text-xs">
-              <div className="flex items-center justify-center gap-1">
-                <Waves className="w-3 h-3" />
-                <span>الیوت</span>
-              </div>
-            </th>
-            <th className="text-center py-4 px-3 text-slate-400 font-semibold text-xs">
-              <div className="flex items-center justify-center gap-1">
-                <TrendingUp className="w-3 h-3" />
-                <span>پرایس اکشن</span>
-              </div>
-            </th>
-            <th className="text-center py-4 px-3 text-slate-400 font-semibold text-xs">
-              <div className="flex items-center justify-center gap-1">
-                <Target className="w-3 h-3" />
-                <span>سطوح ICT</span>
-              </div>
-            </th>
-            <th className="text-center py-4 px-4 text-slate-400 font-semibold text-sm">
-              امتیاز نهایی (%)
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {results.map((result, index) => {
-            const score = getScore(result);
-            const direction = getDirection(result);
-            const price = getPrice(result);
-            const riskLevel = getRiskLevel(result);
-            const isSelected = selectedSymbols.has(result.symbol);
-
-            // Extract component scores
-            const whaleScore = getComponentScore(result, 'whales') || getComponentScore(result, 'whale_activity');
-            const smcScore = getComponentScore(result, 'smc') || getComponentScore(result, 'smart_money');
-            const elliottScore = getComponentScore(result, 'elliott') || getComponentScore(result, 'elliott_wave');
-            const priceActionScore = getComponentScore(result, 'price_action');
-            const ictScore = getComponentScore(result, 'ict') || getComponentScore(result, 'fibonacci');
-
-            return (
-              <tr
-                key={`${result.symbol}-${index}`}
-                className={`
-                  border-b border-slate-800/50 transition-all duration-200 group
-                  hover:bg-slate-700/30 cursor-pointer
-                  ${isSelected ? 'bg-purple-500/10' : ''}
-                `}
+    <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 shadow-xl rounded-xl overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-slate-800/80 border-b border-slate-700/50">
+            <tr>
+              <th 
+                className="text-left p-4 text-slate-300 font-semibold cursor-pointer hover:text-slate-50 transition-colors group"
+                onClick={() => handleSort('symbol')}
               >
-                {/* Selection Checkbox */}
-                <td className="py-3 px-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleSelection(result.symbol);
-                    }}
-                    className="p-1 hover:bg-slate-600/50 rounded transition-colors"
-                  >
-                    {isSelected ? (
-                      <CheckSquare className="w-4 h-4 text-purple-400" />
-                    ) : (
-                      <Square className="w-4 h-4 text-slate-500 group-hover:text-slate-400" />
-                    )}
-                  </button>
-                </td>
-
-                {/* Rank */}
-                <td className="py-3 px-3">
-                  <div className={`
-                    text-center font-bold text-sm ltr-numbers
-                    ${index < 3 ? 'text-yellow-400' : index < 10 ? 'text-cyan-400' : 'text-slate-400'}
-                  `}>
-                    #{index + 1}
-                  </div>
-                </td>
-
-                {/* Symbol / Cryptocurrency */}
-                <td className="py-3 px-4">
-                  <div className="flex items-center gap-2">
-                    <div className="font-bold text-white text-base">
-                      {result.symbol}
+                <div className="flex items-center gap-2">
+                  Symbol
+                  <SortIcon columnKey="symbol" />
+                </div>
+              </th>
+              <th 
+                className="text-left p-4 text-slate-300 font-semibold cursor-pointer hover:text-slate-50 transition-colors group"
+                onClick={() => handleSort('timeframe')}
+              >
+                <div className="flex items-center gap-2">
+                  Timeframe
+                  <SortIcon columnKey="timeframe" />
+                </div>
+              </th>
+              <th 
+                className="text-center p-4 text-slate-300 font-semibold cursor-pointer hover:text-slate-50 transition-colors group"
+                onClick={() => handleSort('action')}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  Signal
+                  <SortIcon columnKey="action" />
+                </div>
+              </th>
+              <th 
+                className="text-right p-4 text-slate-300 font-semibold cursor-pointer hover:text-slate-50 transition-colors group"
+                onClick={() => handleSort('price')}
+              >
+                <div className="flex items-center justify-end gap-2">
+                  Price
+                  <SortIcon columnKey="price" />
+                </div>
+              </th>
+              <th 
+                className="text-right p-4 text-slate-300 font-semibold cursor-pointer hover:text-slate-50 transition-colors group"
+                onClick={() => handleSort('change24h')}
+              >
+                <div className="flex items-center justify-end gap-2">
+                  24h Change
+                  <SortIcon columnKey="change24h" />
+                </div>
+              </th>
+              <th 
+                className="text-right p-4 text-slate-300 font-semibold cursor-pointer hover:text-slate-50 transition-colors group"
+                onClick={() => handleSort('score')}
+              >
+                <div className="flex items-center justify-end gap-2">
+                  Score
+                  <SortIcon columnKey="score" />
+                </div>
+              </th>
+              <th 
+                className="text-right p-4 text-slate-300 font-semibold cursor-pointer hover:text-slate-50 transition-colors group"
+                onClick={() => handleSort('confidence')}
+              >
+                <div className="flex items-center justify-end gap-2">
+                  Confidence
+                  <SortIcon columnKey="confidence" />
+                </div>
+              </th>
+              <th className="text-center p-4 text-slate-300 font-semibold">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedData.map((row, index) => {
+              const score = getScore(row);
+              const direction = getDirection(row);
+              
+              return (
+                <motion.tr
+                  key={`${row.symbol}-${row.timeframe}-${index}`}
+                  className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors cursor-pointer"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.03 }}
+                  onClick={() => onRowClick?.(row)}
+                >
+                  <td className="p-4 font-bold text-slate-50">{row.symbol}</td>
+                  <td className="p-4 text-slate-400">{row.timeframe || 'N/A'}</td>
+                  <td className="p-4 text-center">
+                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${
+                      direction === 'BULLISH' || direction === 'BUY'
+                        ? 'bg-green-500/20 text-green-400 border border-green-500/50'
+                        : direction === 'BEARISH' || direction === 'SELL'
+                        ? 'bg-red-500/20 text-red-400 border border-red-500/50'
+                        : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/50'
+                    }`}>
+                      {direction}
+                    </span>
+                  </td>
+                  <td className="text-right p-4 text-slate-50 font-mono font-medium">
+                    ${row.price?.toFixed(2) || 'N/A'}
+                  </td>
+                  <td className={`text-right p-4 font-semibold ${
+                    (row.change_24h || 0) >= 0 ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    <div className="flex items-center justify-end gap-1">
+                      {(row.change_24h || 0) >= 0 ? 
+                        <TrendingUp className="w-4 h-4" /> : 
+                        <TrendingDown className="w-4 h-4" />
+                      }
+                      {(row.change_24h || 0) >= 0 ? '+' : ''}{(row.change_24h || 0).toFixed(2)}%
                     </div>
-                    <DirectionPill direction={direction} size="xs" />
-                  </div>
-                </td>
-
-                {/* Price (USD) */}
-                <td className="py-3 px-3">
-                  <div className="text-center font-mono text-sm text-white ltr-numbers">
-                    ${price > 0 ? price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A'}
-                  </div>
-                </td>
-
-                {/* Success (%) */}
-                <td className="py-3 px-3">
-                  <div className={`
-                    text-center font-mono text-sm font-semibold ltr-numbers
-                    ${score >= 0.7 ? 'text-emerald-400' : score >= 0.4 ? 'text-amber-400' : 'text-red-400'}
-                  `}>
-                    {formatPercent(score)}
-                  </div>
-                </td>
-
-                {/* Risk (%) */}
-                <td className="py-3 px-3">
-                  <div className={`
-                    text-center font-mono text-sm font-semibold ltr-numbers
-                    ${riskLevel < 33 ? 'text-emerald-400' : riskLevel < 66 ? 'text-amber-400' : 'text-red-400'}
-                  `}>
-                    {riskLevel.toFixed(0)}%
-                  </div>
-                </td>
-
-                {/* Whale Activity */}
-                <td className="py-3 px-3">
-                  <div className="flex justify-center">
-                    <div className={`
-                      w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ltr-numbers
-                      ${whaleScore >= 0.7 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                        whaleScore >= 0.4 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
-                        'bg-slate-700/30 text-slate-400 border border-slate-600/30'}
-                    `}>
-                      {(whaleScore * 100).toFixed(0)}
-                    </div>
-                  </div>
-                </td>
-
-                {/* Smart Money (SMC) */}
-                <td className="py-3 px-3">
-                  <div className="flex justify-center">
-                    <div className={`
-                      w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ltr-numbers
-                      ${smcScore >= 0.7 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                        smcScore >= 0.4 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
-                        'bg-slate-700/30 text-slate-400 border border-slate-600/30'}
-                    `}>
-                      {(smcScore * 100).toFixed(0)}
-                    </div>
-                  </div>
-                </td>
-
-                {/* Elliott Wave */}
-                <td className="py-3 px-3">
-                  <div className="flex justify-center">
-                    <div className={`
-                      w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ltr-numbers
-                      ${elliottScore >= 0.7 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                        elliottScore >= 0.4 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
-                        'bg-slate-700/30 text-slate-400 border border-slate-600/30'}
-                    `}>
-                      {(elliottScore * 100).toFixed(0)}
-                    </div>
-                  </div>
-                </td>
-
-                {/* Price Action */}
-                <td className="py-3 px-3">
-                  <div className="flex justify-center">
-                    <div className={`
-                      w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ltr-numbers
-                      ${priceActionScore >= 0.7 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                        priceActionScore >= 0.4 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
-                        'bg-slate-700/30 text-slate-400 border border-slate-600/30'}
-                    `}>
-                      {(priceActionScore * 100).toFixed(0)}
-                    </div>
-                  </div>
-                </td>
-
-                {/* ICT Key Levels */}
-                <td className="py-3 px-3">
-                  <div className="flex justify-center">
-                    <div className={`
-                      w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ltr-numbers
-                      ${ictScore >= 0.7 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                        ictScore >= 0.4 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
-                        'bg-slate-700/30 text-slate-400 border border-slate-600/30'}
-                    `}>
-                      {(ictScore * 100).toFixed(0)}
-                    </div>
-                  </div>
-                </td>
-
-                {/* Final Score (%) */}
-                <td className="py-3 px-4">
-                  <div className="flex flex-col items-center gap-1">
-                    <div className={`
-                      text-lg font-bold ltr-numbers
-                      ${score >= 0.7 ? 'text-emerald-400' : score >= 0.4 ? 'text-amber-400' : 'text-red-400'}
-                    `}>
-                      {formatPercent(score)}
-                    </div>
-                    <div 
-                      className="h-1.5 rounded-full overflow-hidden bg-slate-700/50"
-                      style={{ width: '80px' }}
+                  </td>
+                  <td className="text-right p-4">
+                    <span className={`px-3 py-1 rounded-full text-sm font-bold ${
+                      score >= 70 ? 'bg-green-500/20 text-green-400 border border-green-500/50' :
+                      score >= 40 ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/50' :
+                      'bg-red-500/20 text-red-400 border border-red-500/50'
+                    }`}>
+                      {score.toFixed(0)}
+                    </span>
+                  </td>
+                  <td className="text-right p-4 text-cyan-400 font-semibold font-mono">
+                    {((row.confidence || 0) * 100).toFixed(0)}%
+                  </td>
+                  <td className="text-center p-4">
+                    <motion.button 
+                      className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-1.5"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRowClick?.(row);
+                      }}
                     >
-                      <div
-                        className={`h-full transition-all duration-700 ease-out ${
-                          score < 0.3 ? 'bg-gradient-to-r from-red-500 to-red-600' :
-                          score < 0.7 ? 'bg-gradient-to-r from-amber-500 to-amber-600' :
-                          'bg-gradient-to-r from-emerald-500 to-emerald-600'
-                        }`}
-                        style={{ width: `${score * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                      View
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </motion.button>
+                  </td>
+                </motion.tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      
+      {sortedData.length === 0 && (
+        <div className="p-12 text-center">
+          <div className="text-slate-600 mb-2">
+            <ArrowUpDown className="w-12 h-12 mx-auto mb-3" />
+          </div>
+          <p className="text-slate-400 text-sm">No results to display</p>
+        </div>
+      )}
     </div>
   );
-};
-
-export default ResultsTable;
+}

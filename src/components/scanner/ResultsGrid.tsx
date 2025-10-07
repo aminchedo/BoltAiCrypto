@@ -1,178 +1,165 @@
 import React from 'react';
-import { TrendingUp, CheckCircle2, Circle } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { TrendingUp, TrendingDown, Clock, Activity } from 'lucide-react';
 import { ScanResult } from '../../types';
-import ScoreGauge from '../ScoreGauge';
-import DirectionPill from '../DirectionPill';
 
 interface ResultsGridProps {
-  results: ScanResult[];
-  selectedSymbols: Set<string>;
-  onToggleSelection: (symbol: string) => void;
+  data: ScanResult[];
+  onCardClick?: (result: ScanResult) => void;
 }
 
-const ResultsGrid: React.FC<ResultsGridProps> = ({ 
-  results, 
-  selectedSymbols,
-  onToggleSelection 
-}) => {
+export default function ResultsGrid({ data, onCardClick }: ResultsGridProps) {
   const getScore = (result: ScanResult): number => {
     return result.overall_score ?? result.final_score ?? result.score ?? 0;
   };
 
-  const getDirection = (result: ScanResult): 'BULLISH' | 'BEARISH' | 'NEUTRAL' => {
+  const getDirection = (result: ScanResult): string => {
     return result.overall_direction ?? result.direction ?? 'NEUTRAL';
   };
 
-  const getTfCount = (result: ScanResult): number => {
-    return result.tf_count ?? result.timeframes?.length ?? 0;
+  const getScoreColor = (score: number) => {
+    if (score >= 70) return 'text-green-400 border-green-500/50 bg-green-500/10';
+    if (score >= 40) return 'text-yellow-400 border-yellow-500/50 bg-yellow-500/10';
+    return 'text-red-400 border-red-500/50 bg-red-500/10';
   };
 
-  const getSignalCount = (result: ScanResult): { active: number; total: number } => {
-    if (result.sample_components) {
-      const components = Object.values(result.sample_components);
-      const total = components.length;
-      const active = components.filter((c: any) => c.score > 0.5).length;
-      return { active, total };
+  const getDirectionStyle = (direction: string) => {
+    if (direction === 'BULLISH' || direction === 'BUY') {
+      return {
+        bg: 'bg-green-500/10',
+        border: 'border-green-500/50',
+        text: 'text-green-400',
+        icon: TrendingUp
+      };
     }
-    return { active: 0, total: 9 };
+    if (direction === 'BEARISH' || direction === 'SELL') {
+      return {
+        bg: 'bg-red-500/10',
+        border: 'border-red-500/50',
+        text: 'text-red-400',
+        icon: TrendingDown
+      };
+    }
+    return {
+      bg: 'bg-yellow-500/10',
+      border: 'border-yellow-500/50',
+      text: 'text-yellow-400',
+      icon: Activity
+    };
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      {results.map((result, index) => {
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {data.map((result, index) => {
         const score = getScore(result);
         const direction = getDirection(result);
-        const tfCount = getTfCount(result);
-        const signalCount = getSignalCount(result);
-        const isSelected = selectedSymbols.has(result.symbol);
+        const directionStyle = getDirectionStyle(direction);
+        const DirectionIcon = directionStyle.icon;
 
         return (
-          <div
-            key={`${result.symbol}-${index}`}
-            className={`
-              relative bg-slate-800/40 backdrop-blur-sm border rounded-xl p-5 space-y-4
-              transition-all duration-300 hover:scale-[1.02] hover:shadow-xl cursor-pointer group
-              ${isSelected 
-                ? 'border-purple-500/50 bg-purple-500/10 shadow-lg shadow-purple-500/20' 
-                : 'border-slate-700/50 hover:border-slate-600/50'
-              }
-            `}
-            style={{
-              animationDelay: `${index * 50}ms`,
-              animation: 'fadeInUp 0.5s ease-out forwards',
-            }}
+          <motion.div
+            key={`${result.symbol}-${result.timeframe}-${index}`}
+            className="bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 shadow-xl rounded-xl p-6 hover:border-cyan-500/50 transition-all duration-300 cursor-pointer group"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3, delay: index * 0.05 }}
+            whileHover={{ y: -4, scale: 1.02 }}
+            onClick={() => onCardClick?.(result)}
           >
-            {/* Selection Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleSelection(result.symbol);
-              }}
-              className="absolute top-3 left-3 p-1 hover:bg-slate-700/50 rounded transition-colors z-10"
-              aria-label={`انتخاب ${result.symbol}`}
-            >
-              {isSelected ? (
-                <CheckCircle2 className="w-5 h-5 text-purple-400" />
-              ) : (
-                <Circle className="w-5 h-5 text-slate-500 group-hover:text-slate-400" />
-              )}
-            </button>
-
-            {/* Header: Symbol */}
-            <div className="flex items-center justify-between">
-              <h4 className="text-xl font-bold text-white">{result.symbol}</h4>
-              <div className={score > 0.8 ? 'animate-pulse' : ''}>
-                <DirectionPill direction={direction} size="sm" />
-              </div>
-            </div>
-
-            {/* Score Gauge (Centered, Large) */}
-            <div className="flex justify-center py-2">
-              <ScoreGauge score={score} size="lg" showLabel={true} />
-            </div>
-
-            {/* Progress Bar */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs text-slate-400">
-                <span>قدرت سیگنال</span>
-                <span>{(score * 100).toFixed(0)}%</span>
-              </div>
-              <div className="h-2 rounded-full overflow-hidden bg-slate-700/50">
-                <div
-                  className={`h-full transition-all duration-700 ease-out ${
-                    score < 0.3 ? 'bg-gradient-to-r from-red-500 to-red-600' :
-                    score < 0.7 ? 'bg-gradient-to-r from-amber-500 to-amber-600' :
-                    'bg-gradient-to-r from-emerald-500 to-emerald-600'
-                  }`}
-                  style={{ width: `${score * 100}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 gap-3 text-center">
-              <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/30">
-                <div className="text-xs text-slate-400 mb-1">سیگنال‌ها</div>
-                <div className="text-lg font-bold text-slate-200">
-                  {signalCount.active}/{signalCount.total}
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-xl font-bold text-slate-50 mb-1">{result.symbol}</h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400">{result.timeframe || 'Multi-TF'}</span>
+                  {result.tf_count && (
+                    <span className="text-xs text-slate-500">•</span>
+                  )}
+                  {result.tf_count && (
+                    <span className="text-xs text-cyan-400">{result.tf_count} TF</span>
+                  )}
                 </div>
               </div>
-              <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/30">
-                <div className="text-xs text-slate-400 mb-1">بازه‌ها</div>
-                <div className="text-lg font-bold text-slate-200">
-                  {tfCount}
-                </div>
+              
+              <div className={`w-12 h-12 rounded-xl ${directionStyle.bg} border ${directionStyle.border} flex items-center justify-center`}>
+                <DirectionIcon className={`w-6 h-6 ${directionStyle.text}`} />
               </div>
             </div>
 
-            {/* Timeframe Badges */}
-            {result.timeframes && result.timeframes.length > 0 && (
-              <div className="flex flex-wrap gap-1 justify-center">
-                {result.timeframes.slice(0, 4).map((tf) => (
-                  <span
-                    key={tf}
-                    className={`
-                      px-2 py-1 rounded text-xs font-mono font-semibold border
-                      ${direction === 'BULLISH' 
-                        ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300'
-                        : direction === 'BEARISH'
-                        ? 'bg-red-500/20 border-red-500/30 text-red-300'
-                        : 'bg-slate-600/20 border-slate-500/30 text-slate-400'
-                      }
-                    `}
-                  >
-                    {tf}
-                  </span>
-                ))}
+            {/* Price */}
+            {result.price && (
+              <div className="mb-4">
+                <div className="text-2xl font-mono font-bold text-slate-50">
+                  ${result.price.toFixed(2)}
+                </div>
+                {result.change_24h !== undefined && (
+                  <div className={`text-sm font-semibold ${
+                    result.change_24h >= 0 ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {result.change_24h >= 0 ? '+' : ''}{result.change_24h.toFixed(2)}% (24h)
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Action Button */}
-            <button
-              onClick={() => console.log('Open details for', result.symbol)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 hover:from-cyan-500/30 hover:to-blue-500/30 border border-cyan-500/30 text-cyan-400 rounded-lg font-medium transition-all hover:scale-105"
-            >
-              <TrendingUp className="w-4 h-4" />
-              <span>مشاهده جزئیات</span>
-            </button>
-          </div>
+            {/* Signal Badge */}
+            <div className="flex items-center gap-2 mb-4">
+              <span className={`px-3 py-1 rounded-lg text-xs font-bold ${directionStyle.bg} ${directionStyle.text} border ${directionStyle.border}`}>
+                {direction}
+              </span>
+            </div>
+
+            {/* Score & Confidence */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className={`rounded-lg p-3 border ${getScoreColor(score)}`}>
+                <div className="text-xs text-slate-400 mb-1">Score</div>
+                <div className="text-2xl font-bold">{score.toFixed(0)}</div>
+              </div>
+              <div className="bg-cyan-500/10 border border-cyan-500/50 rounded-lg p-3">
+                <div className="text-xs text-slate-400 mb-1">Confidence</div>
+                <div className="text-2xl font-bold text-cyan-400">
+                  {((result.confidence || 0) * 100).toFixed(0)}%
+                </div>
+              </div>
+            </div>
+
+            {/* Progress Bars for Key Metrics */}
+            {result.rsi_macd_score !== undefined && (
+              <div className="space-y-2">
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-slate-400">Core Signal</span>
+                    <span className="text-slate-300 font-medium">
+                      {(result.rsi_macd_score * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-700/50 rounded-full h-1.5 overflow-hidden">
+                    <div 
+                      className="bg-gradient-to-r from-blue-400 to-cyan-500 h-full transition-all duration-500"
+                      style={{ width: `${result.rsi_macd_score * 100}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Timestamp */}
+            {result.timestamp && (
+              <div className="flex items-center gap-1 text-xs text-slate-500 mt-4 pt-4 border-t border-slate-800">
+                <Clock className="w-3 h-3" />
+                <span>{new Date(result.timestamp).toLocaleTimeString()}</span>
+              </div>
+            )}
+          </motion.div>
         );
       })}
-      
-      <style jsx>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
+
+      {data.length === 0 && (
+        <div className="col-span-full bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 shadow-xl rounded-xl p-12 text-center">
+          <Activity className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+          <p className="text-slate-400">No results to display</p>
+        </div>
+      )}
     </div>
   );
-};
-
-export default ResultsGrid;
+}

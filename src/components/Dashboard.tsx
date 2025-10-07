@@ -1,4 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
+import { motion } from 'framer-motion';
 import SignalCard from './SignalCard';
 import TradingChart from './TradingChart';
 import RiskPanel from './RiskPanel';
@@ -18,7 +19,7 @@ const Scanner = lazy(() => import('../pages/Scanner'));
 import { tradingEngine } from '../services/tradingEngine';
 import { binanceApi } from '../services/binanceApi';
 import { api } from '../services/api';
-import { Activity, RefreshCw, Zap, TrendingUp, PieChart, DollarSign, TestTube, MessageSquare, Brain, Search, Sliders } from 'lucide-react';
+import { Activity, RefreshCw, Zap, TrendingUp, PieChart, DollarSign, TestTube, MessageSquare, Brain, Search, Sliders, AlertCircle } from 'lucide-react';
 import clsx from 'clsx';
 
 interface DashboardProps {
@@ -198,21 +199,25 @@ Confidence: ${(signal.confidence * 100).toFixed(1)}%
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header - RTL Aware */}
-      <header className="bg-slate-900/50 backdrop-blur-xl border-b border-slate-700/50 sticky top-0 z-50">
+    <div className="min-h-screen bg-slate-950">
+      {/* Header - Modern Glassmorphism */}
+      <header className="bg-slate-900/80 backdrop-blur-xl border-b border-slate-700/50 sticky top-0 z-50 shadow-lg">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600">
+              <motion.div 
+                className="flex items-center gap-3"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+              >
+                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/50">
                   <Zap className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-white">سیستم معاملاتی HTS</h1>
-                  <p className="text-xs text-slate-400">استراتژی ترکیبی معاملاتی v1.0</p>
+                  <h1 className="text-2xl font-bold text-slate-50">BoltAI Crypto Trading</h1>
+                  <p className="text-xs text-slate-400">Professional Trading System v2.0</p>
                 </div>
-              </div>
+              </motion.div>
               
               {/* WebSocket Status Badge */}
               <WSBadge />
