@@ -72,7 +72,7 @@ export interface SMCAnalysis {
   fair_value_gaps: {
     present: boolean;
     count: number;
-    latest: any;
+    latest: Record<string, unknown> | null;
   };
   signal: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
 }
@@ -119,7 +119,7 @@ export interface ComponentScore {
   score: number; // 0-1
   direction: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
   confidence: number; // 0-1
-  meta: Record<string, any>;
+  meta: Record<string, unknown>;
 }
 
 export interface CombinedScore {
@@ -149,13 +149,13 @@ export interface ScanResult {
   timeframe_breakdown?: Record<string, {
     score: number;
     direction: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
-    [key: string]: any;
+    [key: string]: unknown;
   }>;
   sample_components?: Record<string, {
-    raw: any;
+    raw: unknown;
     score: number;
     weight: number;
-    meta: any;
+    meta: unknown;
   }>;
   price?: number; // Current price
   confidence?: number; // Overall confidence

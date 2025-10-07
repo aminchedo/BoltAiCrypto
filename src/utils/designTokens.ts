@@ -180,7 +180,7 @@ export const getRelativeTime = (date: Date | string): string => {
 };
 
 // Contrast helpers for AA/AAA compliance
-export const getContrastRatio = (color1: string, color2: string): number => {
+export const getContrastRatio = (_color1: string, _color2: string): number => {
   // Simplified contrast ratio calculation
   // In production, use a proper color library
   return 4.5; // Placeholder

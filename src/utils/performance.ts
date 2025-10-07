@@ -99,7 +99,7 @@ export const perfMonitor = new PerformanceMonitor(
 /**
  * React Hook for performance monitoring
  */
-export const usePerformanceMonitor = (metricName: string, dependencies: any[] = []) => {
+export const usePerformanceMonitor = (metricName: string, dependencies: React.DependencyList = []) => {
   React.useEffect(() => {
     perfMonitor.start(metricName);
     return () => {
@@ -111,7 +111,7 @@ export const usePerformanceMonitor = (metricName: string, dependencies: any[] = 
 /**
  * Debounce function for performance optimization
  */
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: never[]) => unknown>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
@@ -131,7 +131,7 @@ export function debounce<T extends (...args: any[]) => any>(
 /**
  * Throttle function for performance optimization
  */
-export function throttle<T extends (...args: any[]) => any>(
+export function throttle<T extends (...args: never[]) => unknown>(
   func: T,
   limit: number
 ): (...args: Parameters<T>) => void {
@@ -181,7 +181,7 @@ export const checkBrowserSupport = () => {
  */
 export const getMemoryUsage = () => {
   if ('memory' in performance) {
-    const memory = (performance as any).memory;
+    const memory = (performance as unknown as { memory: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
     return {
       usedJSHeapSize: memory.usedJSHeapSize,
       totalJSHeapSize: memory.totalJSHeapSize,

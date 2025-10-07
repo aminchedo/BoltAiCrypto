@@ -23,9 +23,9 @@ import { Activity, RefreshCw, Zap, TrendingUp, PieChart, DollarSign, TestTube, M
 import clsx from 'clsx';
 
 interface DashboardProps {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   user?: any;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   onLogout?: () => void;
 }
 

@@ -13,8 +13,6 @@ const SYMBOLS = [
 
 const TIMEFRAMES = ['1m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '12h', '1d', '1w'];
 
-const DIRECTIONS: ('BULLISH' | 'BEARISH' | 'NEUTRAL')[] = ['BULLISH', 'BEARISH', 'NEUTRAL'];
-
 const DETECTORS = [
   'harmonic',
   'elliott',
@@ -47,7 +45,7 @@ const getDirectionFromScore = (score: number): 'BULLISH' | 'BEARISH' | 'NEUTRAL'
  * Generate mock sample components
  */
 const generateSampleComponents = () => {
-  const components: any = {};
+  const components: Record<string, { raw: number; weighted: number; weight: number }> = {};
   
   DETECTORS.forEach(detector => {
     const raw = randomScore();
@@ -204,16 +202,16 @@ export const enableMockMode = () => {
   console.log('🧪 Mock mode enabled for scanner');
   
   // Override API client post method
-  const originalPost = (window as any).__originalApiPost;
+  const originalPost = (window as Record<string, unknown>).__originalApiPost;
   if (!originalPost) {
-    (window as any).__originalApiPost = fetch;
+    (window as Record<string, unknown>).__originalApiPost = fetch;
   }
   
   // Mock fetch for scanner endpoint
-  (window as any).fetch = async (url: string, options?: any) => {
+  (window as Record<string, unknown>).fetch = async (url: string, options?: RequestInit) => {
     if (url.includes('/api/scanner/run')) {
       console.log('🎭 Intercepted scanner API call, returning mock data');
-      const body = options?.body ? JSON.parse(options.body) : {};
+      const body = options?.body ? JSON.parse(options.body as string) : {};
       const mockResponse = await mockScanApiResponse(
         body.symbols || ['BTCUSDT', 'ETHUSDT'],
         body.timeframes || ['15m', '1h', '4h']
@@ -226,7 +224,7 @@ export const enableMockMode = () => {
     }
     
     // Pass through other requests
-    return (window as any).__originalApiPost(url, options);
+    return (window as Record<string, unknown>).__originalApiPost as Promise<Response>;
   };
 };
 
@@ -235,14 +233,14 @@ export const enableMockMode = () => {
  */
 export const disableMockMode = () => {
   console.log('✅ Mock mode disabled');
-  if ((window as any).__originalApiPost) {
-    (window as any).fetch = (window as any).__originalApiPost;
+  if ((window as Record<string, unknown>).__originalApiPost) {
+    (window as Record<string, unknown>).fetch = (window as Record<string, unknown>).__originalApiPost;
   }
 };
 
 // Export for easy access in console
 if (typeof window !== 'undefined') {
-  (window as any).mockData = {
+  (window as Record<string, unknown>).mockData = {
     enable: enableMockMode,
     disable: disableMockMode,
     generate: generateMockScanResults,

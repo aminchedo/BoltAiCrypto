@@ -8,7 +8,7 @@ import { mlPredictor } from '../analytics/mlPredictor';
 import { riskManager } from '../analytics/riskManager';
 
 export class TradingEngine {
-  private cache = new Map<string, { data: any; timestamp: number }>();
+  private cache = new Map<string, { data: unknown; timestamp: number }>();
   private cacheTTL = 60000; // 1 minute
 
   async generateSignal(symbol: string, interval: string = '1h'): Promise<TradingSignal> {
@@ -99,7 +99,7 @@ export class TradingEngine {
     }
   }
 
-  private async getCoreSignal(ohlcvData: OHLCVData[]): Promise<any> {
+  private async getCoreSignal(ohlcvData: OHLCVData[]): Promise<unknown> {
     return coreSignalAnalyzer.generateRSIMACDSignal(ohlcvData);
   }
 
@@ -135,7 +135,7 @@ export class TradingEngine {
     return data;
   }
 
-  private getFromCache(key: string): any {
+  private getFromCache(key: string): unknown {
     const cached = this.cache.get(key);
     if (cached && Date.now() - cached.timestamp < this.cacheTTL) {
       return cached.data;
@@ -143,11 +143,11 @@ export class TradingEngine {
     return null;
   }
 
-  private setCache(key: string, data: any): void {
+  private setCache(key: string, data: unknown): void {
     this.cache.set(key, { data, timestamp: Date.now() });
   }
 
-  async getDetailedAnalysis(symbol: string): Promise<any> {
+  async getDetailedAnalysis(symbol: string): Promise<Record<string, unknown>> {
     const ohlcvData = await this.getOHLCVData(symbol, '1h', 100);
     const marketData = await binanceApi.get24hrTicker(symbol);
     

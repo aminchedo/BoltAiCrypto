@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { store, AppState, WeightConfig, ScanRules } from './store';
+import { store, AppState } from './store';
 
 /**
  * Hook to subscribe to entire store state

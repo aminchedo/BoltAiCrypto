@@ -9,7 +9,7 @@ function normalizeBase(url: string) {
 }
 
 function resolveWsBase() {
-  const env = (import.meta as any).env?.VITE_WS_URL as string | undefined;
+  const env = (import.meta as { env?: { VITE_WS_URL?: string } }).env?.VITE_WS_URL as string | undefined;
   if (env && env.trim()) return normalizeBase(env.trim());
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   return `${proto}//${window.location.host}`;
@@ -96,7 +96,7 @@ export class WebSocketManager {
   /**
    * Send message to WebSocket
    */
-  send(data: any): void {
+  send(data: unknown): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(typeof data === 'string' ? data : JSON.stringify(data));
     } else {
