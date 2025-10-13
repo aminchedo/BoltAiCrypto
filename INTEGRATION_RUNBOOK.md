@@ -507,6 +507,171 @@ server {
 - [ ] SQL injection protection enabled
 - [ ] XSS protection headers set
 
+## Real-Time Agent E2E Integration
+
+### Overview
+The Real-Time Agent is now fully wired end-to-end:
+- **Agent toggle** controls live scanner start/stop in the backend
+- **Subscribe endpoint** (`/api/agent/subscribe`) updates scanner symbols immediately
+- **Startup behavior** respects `REALTIME_AGENT_ENABLED` environment variable
+- **UI watchlist** automatically updates subscriptions when symbols change
+
+### Agent Toggle → Live Scanner
+
+The agent toggle now actually starts and stops the live scanner:
+
+**Enable Agent:**
+```bash
+curl -X PUT http://localhost:8000/api/agent/toggle \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": true}'
+```
+
+**Disable Agent:**
+```bash
+curl -X PUT http://localhost:8000/api/agent/toggle \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": false}'
+```
+
+When enabled:
+- Live scanner starts in the background
+- Begins scanning subscribed symbols
+- Sends real-time updates via WebSocket
+
+When disabled:
+- Live scanner stops gracefully
+- No new signals are generated
+- WebSocket connections remain open but idle
+
+### Subscribe Endpoint
+
+Update the symbols being scanned in real-time:
+
+```bash
+curl -X PUT http://localhost:8000/api/agent/subscribe \
+  -H "Content-Type: application/json" \
+  -d '{"symbols": ["BTCUSDT", "ETHUSDT", "SOLUSDT"]}'
+```
+
+Response:
+```json
+{
+  "symbols": ["BTCUSDT", "ETHUSDT", "SOLUSDT"],
+  "count": 3
+}
+```
+
+**Behavior:**
+- If agent is OFF: symbols are stored but scanner is not running
+- If agent is ON: scanner immediately updates to scan new symbols
+- Next scan cycle will use the updated symbol list
+
+### Startup Environment Variable
+
+Control agent startup behavior with environment variable:
+
+**Enable at Startup (default):**
+```bash
+export REALTIME_AGENT_ENABLED=true
+python3 -m uvicorn main:app --port 8000
+```
+
+**Disable at Startup:**
+```bash
+export REALTIME_AGENT_ENABLED=false
+python3 -m uvicorn main:app --port 8000
+```
+
+**Behavior:**
+- If `true`: Live scanner starts automatically and begins scanning
+- If `false`: Live scanner is initialized but not started; can be enabled via API
+- Default: `true` (agent starts automatically)
+
+### Frontend Watchlist Integration
+
+The UI watchlist now automatically updates subscriptions:
+
+1. **Add/Remove Symbols:**
+   - Navigate to Watchlist page (`/watchlist`)
+   - Add or remove symbols
+   - If agent is ON, subscriptions update automatically
+
+2. **Agent Toggle:**
+   - Toggle agent ON in header
+   - Automatically subscribes to current watchlist symbols
+   - WebSocket connects and starts receiving updates
+
+3. **Real-time Updates:**
+   - Symbols in watchlist are scanned by live scanner
+   - Updates appear in UI automatically via WebSocket
+   - Status badge shows connection state
+
+### End-to-End Flow
+
+**Complete workflow:**
+
+1. **Start Backend:**
+   ```bash
+   export REALTIME_AGENT_ENABLED=true
+   cd backend && python3 -m uvicorn main:app --port 8000
+   ```
+
+2. **Start Frontend:**
+   ```bash
+   npm run frontend:dev
+   ```
+
+3. **Verify Agent Status:**
+   ```bash
+   curl http://localhost:8000/api/agent/status
+   ```
+
+4. **Add Symbols (via UI or API):**
+   ```bash
+   curl -X PUT http://localhost:8000/api/agent/subscribe \
+     -H "Content-Type: application/json" \
+     -d '{"symbols": ["BTCUSDT", "ETHUSDT"]}'
+   ```
+
+5. **Monitor WebSocket (browser console):**
+   ```javascript
+   // Open DevTools → Console
+   // You should see real-time signal messages
+   ```
+
+6. **Toggle Agent OFF/ON:**
+   ```bash
+   # OFF - stops scanner
+   curl -X PUT http://localhost:8000/api/agent/toggle \
+     -H "Content-Type: application/json" \
+     -d '{"enabled": false}'
+   
+   # ON - restarts scanner
+   curl -X PUT http://localhost:8000/api/agent/toggle \
+     -H "Content-Type: application/json" \
+     -d '{"enabled": true}'
+   ```
+
+### Verification
+
+Run the integration verification script:
+
+```bash
+cd backend
+python3 verify_integration.py
+```
+
+Expected output:
+```
+✅ ALL INTEGRATION CHECKS PASSED!
+The code is properly wired for:
+  • Agent toggle controls live scanner start/stop
+  • Subscribe endpoint updates scanner symbols
+  • Startup respects REALTIME_AGENT_ENABLED env var
+  • Frontend watchlist updates subscriptions
+```
+
 ## Contact & Support
 
 For issues or questions:
@@ -518,4 +683,4 @@ For issues or questions:
 ---
 
 **Last Updated:** 2025-10-05  
-**Version:** 1.0.0
+**Version:** 1.1.0 - Real-Time Agent E2E Complete
